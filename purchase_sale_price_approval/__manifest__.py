@@ -1,0 +1,23 @@
+{
+    "name": "Purchase Sale Price Approval",
+    "version": "18.0.1.0.0",
+    "summary": "Pending approval workflow for purchase-driven sale price updates",
+    "category": "Purchases/Configuration",
+    "author": "dev_pmk",
+    "license": "LGPL-3",
+    "depends": ["base", "product", "purchase", "stock", "mail"],
+    "data": [
+        "security/sale_price_security.xml",
+        "data/sale_price_sequence.xml",
+        "data/mail_activity_data.xml",
+        "security/ir.model.access.csv",
+        "views/sale_price_rule_views.xml",
+        "wizard/batch_price_approval_wizard_views.xml",
+        "views/sale_price_update_views.xml",
+        "views/sale_price_history_views.xml",
+        "views/purchase_order_views.xml",
+        "views/menu_views.xml",
+    ],
+    "installable": True,
+    "application": False,
+}

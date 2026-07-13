@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sale_price_history_search" model="ir.ui.view">
+        <field name="name">sale.price.history.search</field>
+        <field name="model">sale.price.history</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id" string="Product"/>
+                <field name="vendor_id" string="Vendor"/>
+                <field name="purchase_order_id" string="Purchase Order"/>
+                <field name="approved_by" string="Approved By"/>
+                <filter name="approval_date" string="Approval Date" date="approved_date"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_category" string="Product Category" context="{'group_by': 'product_category_id'}"/>
+                    <filter name="group_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'approved_date:month'}"/>
+                    <filter name="group_approved_by" string="Approved By" context="{'group_by': 'approved_by'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_sale_price_history_list" model="ir.ui.view">
+        <field name="name">sale.price.history.list</field>
+        <field name="model">sale.price.history</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false">
+                <field name="name" string="Reference"/>
+                <field name="product_id" string="Product"/>
+                <field name="purchase_order_id" string="Purchase Order"/>
+                <field name="vendor_id" string="Vendor"/>
+                <field name="purchase_price" string="Purchase Price"/>
+                <field name="old_sale_price" string="Previous Sale Price"/>
+                <field name="approved_sale_price" string="Approved Sale Price"/>
+                <field name="markup_value" string="Markup"/>
+                <field name="approved_by" string="Approved By"/>
+                <field name="approved_date" string="Approved Date"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_sale_price_history_form" model="ir.ui.view">
+        <field name="name">sale.price.history.form</field>
+        <field name="model">sale.price.history</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" string="Reference" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="product_id" string="Product"/>
+                            <field name="vendor_id" string="Vendor"/>
+                            <field name="purchase_order_id" string="Purchase Order"/>
+                        </group>
+                        <group>
+                            <field name="purchase_price" string="Purchase Price"/>
+                            <field name="old_sale_price" string="Previous Sale Price"/>
+                            <field name="markup_value" string="Markup"/>
+                            <field name="approved_sale_price" string="Approved Sale Price"/>
+                            <field name="approved_by" string="Approved By"/>
+                            <field name="approved_date" string="Approved Date"/>
+                        </group>
+                    </group>
+                    <group invisible="1">
+                        <field name="company_id"/>
+                        <field name="product_tmpl_id"/>
+                        <field name="product_category_id"/>
+                        <field name="purchase_order_line_id"/>
+                        <field name="sale_price_update_id"/>
+                        <field name="rule_line_id"/>
+                        <field name="markup_type"/>
+                        <field name="calculated_sale_price"/>
+                        <field name="currency_id"/>
+                        <field name="effective_date"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_sale_price_history_pivot" model="ir.ui.view">
+        <field name="name">sale.price.history.pivot</field>
+        <field name="model">sale.price.history</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="approved_sale_price" type="measure"/>
+                <field name="old_sale_price" type="measure"/>
+                <field name="purchase_price" type="measure"/>
+                <field name="approved_date" interval="month" type="col"/>
+                <field name="product_id" type="row"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_sale_price_history_graph" model="ir.ui.view">
+        <field name="name">sale.price.history.graph</field>
+        <field name="model">sale.price.history</field>
+        <field name="arch" type="xml">
+            <graph string="Sale Price History" type="bar">
+                <field name="approved_date" interval="month"/>
+                <field name="approved_sale_price" type="measure"/>
+                <field name="product_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_sale_price_history" model="ir.actions.act_window">
+        <field name="name">Sale Price History</field>
+        <field name="res_model">sale.price.history</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_sale_price_history_search"/>
+    </record>
+</odoo>
