@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <record id="sale_analysis_report_wizard_view_form" model="ir.ui.view">
+            <field name="name">wizard.sale.analysis.report.form</field>
+            <field name="model">wizard.sale.analysis.report</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <group>
+                            <field name="company_id" options="{ 'no_create': True, 'no_create_edit': True,'no_open': True }"/>
+                            <label for="from_date" string="Invoice Date From"/>
+                            <div class="o_row">
+                                <field name="from_date" nolabel="1"/>
+                                <label for="to_date" string="To Date"/>
+                                <field name="to_date" nolabel="1"/>
+                            </div>
+                            <!--                            <field name="vehicle_id" options="{'no_open':True,'no_create_edit': True,'no_create': True}"/>-->
+
+                            <field name="product_id"
+                                   options="{'no_open':True,'no_create_edit': True,'no_create': True}"/>
+                            <field name="division_id"
+                                   options="{'no_open':True,'no_create_edit': True,'no_create': True}"/>
+                            <field name="sale_team_ids"
+                                   options="{ 'no_create': True, 'no_create_edit': True,'no_open': True }"
+                                   widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="print_report" type="object" string="Print XLSX" class="oe_highlight"/>
+                        <button special="cancel" string="Cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_wizard_sale_analysis_report" model="ir.actions.act_window">
+            <field name="name">Sale Analysis Detail Report</field>
+            <field name="res_model">wizard.sale.analysis.report</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem action="action_wizard_sale_analysis_report" id="menu_action_wizard_sale_analysis_report"
+                  parent="sale.menu_sale_report" />
+    </data>
+</odoo>

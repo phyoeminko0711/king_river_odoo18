@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sale_detail_report,sale.detail.report,model_sale_detail_report,base.group_user,1,1,1,0
+access_purchase_detail_report,purchase.detail.report,model_purchase_detail_report,base.group_user,1,1,1,0
+access_wizard_sale_analysis_report,wizard.sale.analysis.report,model_wizard_sale_analysis_report,base.group_user,1,1,1,0

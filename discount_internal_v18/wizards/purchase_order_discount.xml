@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="purchase_order_line_wizard_form_inherit" model="ir.ui.view">
+        <field name="name">purchase.order.discount.wizard.inherit</field>
+        <field name="model">purchase.order.discount</field>
+        <field name="inherit_id" ref="wm_purchase_global_discount.purchase_order_line_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='discount_percentage']" position="replace">
+                <div class="o_row">
+                    <field name="discount_percentage"
+                    invisible="discount_type not in ('po_discount')" nolabel="1" widget="percentage"/>
+                    <field name="discount_percentage"
+                   invisible="discount_type not in ('pol_discount')" nolabel="1"/>
+                    <field name="pol_disc_type"
+                       invisible="discount_type not in ('pol_discount')" required="discount_type in ('pol_discount')" nolabel="1"/>
+                </div>
+
+            </xpath>
+        </field>
+    </record>
+</odoo>

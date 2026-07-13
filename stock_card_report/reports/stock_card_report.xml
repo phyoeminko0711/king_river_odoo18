@@ -1,0 +1,217 @@
+<odoo>
+    <template id="stock_card_report.internal_layout">
+        <div class="article">
+            <link
+                href="/stock_card_report/static/src/css/report.css"
+                rel="stylesheet"
+            />
+            <t t-out="0" />
+        </div>
+        <div class="footer">
+            <div class="row">
+                <div class="col-6 custom_footer">
+                    <span
+                        t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"
+                    />
+                </div>
+                <div class="col-6 text-right custom_footer">
+                    <span class="page" />/<span class="topage" />
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_buttons">
+        <div class="button_row">
+            <button class="o_stock_card_reports_print btn btn-sm oe_button"><span
+                    class="fa fa-print"
+                />Print</button>
+            <button class="o_stock_card_reports_export btn btn-sm oe_button"><span
+                    class="fa fa-download"
+                />Export</button>
+        </div>
+    </template>
+
+    <template id="report_stock_card_report_html">
+        <div class="o_stock_card_reports_page">
+            <t t-call="stock_card_report.report_buttons" />
+            <t t-call="stock_card_report.report_stock_card_report_base" />
+        </div>
+    </template>
+
+    <template id="stock_card_report.report_stock_card_report_pdf">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="stock_card_report.internal_layout">
+                    <t t-call="stock_card_report.report_stock_card_report_base" />
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="stock_card_report.report_stock_card_report_base">
+        <!-- Display filters -->
+        <t t-call="stock_card_report.report_stock_card_report_filters"/>
+        <div class="page">
+            <t t-foreach="o._compute_results()" t-as="result">
+                <t t-set="stock_line" t-value="result_value"/>
+                <t t-if="not o.check_no_move and stock_line['balance'] == 0 and stock_line['ending_balance_value'] == 0 and len(stock_line['product_lines']) == 0">
+                </t>
+                <t t-else="">
+                    <div class="row">
+                        <t t-set="title">Stock Card - <t t-esc="stock_line['name']"/></t>
+                        <h4 class="mt0" t-esc="title" style="text-align: center;"/>
+                    </div>
+                    <!-- Display stock card table -->
+                    <div class="act_as_table data_table mt4" style="width: 100%;">
+                        <!-- Display header line-->
+                        <t t-call="stock_card_report.report_stock_card_lines_header"/>
+
+                        <!-- Display initial lines -->
+                        <t t-set="initial" t-value="stock_line['balance']"/>
+                        <t t-set="initial_value" t-value="stock_line['ending_balance_value']"/>
+
+                        <div class="act_as_row lines">
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell font-weight-bold">
+                                Initial
+                            </div>
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(initial)"/>
+                            </div>
+                            <div class="act_as_cell right">
+                                <t t-esc="''"/>
+                            </div>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(initial_value)"/>
+                            </div>
+                            <div class="act_as_cell"/>
+                        </div>
+
+                        <!-- Display each line -->
+                        <t t-set="product_balance" t-value="initial"/>
+                        <t t-set="product_ending_value" t-value="initial_value"/>
+                        <t t-set="total_in_qty" t-value="0"/>
+                        <t t-set="total_out_qty" t-value="0"/>
+                        <t t-foreach="stock_line['product_lines']" t-as="line">
+                            <t t-set="product_balance" t-value="product_balance + line['product_in'] - line['product_out']"/>
+                            <t t-set="product_ending_value" t-value="product_ending_value + (line['value'] * (line['product_in'] - line['product_out']))"/>
+                            <t t-set="total_in_qty" t-value="total_in_qty + line['product_in']"/>
+                            <t t-set="total_out_qty" t-value="total_out_qty + line['product_out']"/>
+                            <t t-call="stock_card_report.report_stock_card_lines"/>
+                        </t>
+
+                        <!-- Display total line -->
+                        <div class="act_as_row lines">
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell"/>
+                            <div class="act_as_cell font-weight-bold">
+                                Total
+                            </div>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(total_in_qty)"/>
+                            </div>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(total_out_qty)"/>
+                            </div>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(product_balance)"/>
+                            </div>
+                            <div class="act_as_cell right">
+                                <t t-esc="''"/>
+                            </div>
+                            <div class="act_as_cell right">
+                                <t t-esc="''"/>
+                            </div>
+                            <div class="act_as_cell right font-weight-bold">
+                                <t t-esc="'{0:,.2f}'.format(product_ending_value)"/>
+                            </div>
+                            <div class="act_as_cell"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </div>
+    </template>
+
+    <template id="stock_card_report.report_stock_card_report_filters">
+        <div class="act_as_table data_table" style="width: 100%;">
+            <div class="act_as_row labels">
+                <div class="act_as_cell">Date From</div>
+                <div class="act_as_cell">Date To</div>
+                <div class="act_as_cell">Location</div>
+            </div>
+            <div class="act_as_row">
+                <div class="act_as_cell">
+                    <span t-field="o.date_from" />
+                </div>
+                <div class="act_as_cell">
+                    <span t-field="o.date_to" />
+                </div>
+                <div class="act_as_cell">
+                    <span t-field="o.location_ids" />
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="stock_card_report.report_stock_card_lines_header">
+        <div class="act_as_thead">
+            <div class="act_as_row labels">
+                <div class="act_as_cell">Date</div>
+                <div class="act_as_cell">Reference</div>
+                <div class="act_as_cell">Serial No</div>
+                <div class="act_as_cell">Input</div>
+                <div class="act_as_cell">Output</div>
+                <div class="act_as_cell">Balance Qty</div>
+                <!-- Group access control for CPU, Total, and Balance Value columns -->
+                <div class="act_as_cell">CPU</div>
+                <div class="act_as_cell">Total</div>
+                <div class="act_as_cell">Balance Value</div>
+                <div class="act_as_cell">From Warehouse</div>
+                <div class="act_as_cell">To Warehouse</div>
+            </div>
+        </div>
+    </template>
+
+    <template id="stock_card_report.report_stock_card_lines">
+        <div class="act_as_row lines">
+            <div class="act_as_cell left">
+                <t t-esc="line['date'].strftime('%Y-%m-%d')"/>
+            </div>
+            <div class="act_as_cell left">
+                <t t-esc="line['reference']"/>
+            </div>
+            <div class="act_as_cell left">
+                <t t-esc="line['serial_no']"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(line['product_in'])"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(line['product_out'])"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(product_balance)"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(line['value'])"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(line['value'] * abs(line['product_in'] - line['product_out']))"/>
+            </div>
+            <div class="act_as_cell right">
+                <t t-esc="'{0:,.2f}'.format(product_ending_value)"/>
+            </div>
+            <div class="act_as_cell left">
+                <t t-esc="line['source']"/>
+            </div>
+            <div class="act_as_cell left">
+                <t t-esc="line['destination']"/>
+            </div>
+        </div>
+    </template>
+</odoo>
