@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Purchase Form View -->
+    <record id="purchase_order_form_view_inherited" model="ir.ui.view">
+        <field name="name">purchase.order.view.form.inherit.hide.cost.price</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price_unit']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+            <xpath expr="//field[@name='price_subtotal']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+            <xpath expr="//field[@name='tax_totals']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Purchase Tree View -->
+    <record id="purchase_order_kpis_tree_inherited" model="ir.ui.view">
+        <field name="name">purchase.order.view.tree.inherit.hide.cost.price</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_kpis_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount_untaxed']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+            <xpath expr="//field[@name='amount_total']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+            <xpath expr="//field[@name='amount_total_cc']" position="attributes">
+                <attribute name="groups">hide_cost_price.groups_view_cost_price</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

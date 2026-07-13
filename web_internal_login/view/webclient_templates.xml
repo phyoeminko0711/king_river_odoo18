@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<!--    <template id="login_layout" inherit_id="web.login_layout" name="Login Layout">-->
+<!--        <xpath expr="//div[@t-if='not disable_footer']" position="replace">-->
+<!--            <div class="text-center small mt-4 pt-3 border-top" t-if="not disable_footer">-->
+<!--                <a href="https://www.innovix-solutions.com/" target="_blank" class="powered-by">Powered by <span>Odoo</span></a>-->
+<!--            </div>-->
+<!--        </xpath>-->
+<!--    </template>-->
+
+    <template id="login" inherit_id="web.login" name="Login">
+        <xpath expr="//t[@t-if='debug']" position="replace"/>
+    </template>
+
+    <template id="auth_signup.login" inherit_id="web.login" name="Sign up - Reset Password"/>
+</odoo>
