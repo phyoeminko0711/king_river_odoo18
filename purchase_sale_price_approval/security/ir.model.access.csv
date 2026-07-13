@@ -1,0 +1,15 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"access_sale_price_rule_user","sale.price.rule user","model_sale_price_rule","purchase_sale_price_approval.group_sale_price_user",1,0,0,0
+"access_sale_price_rule_manager","sale.price.rule manager","model_sale_price_rule","purchase_sale_price_approval.group_sale_price_manager",1,1,1,0
+"access_sale_price_rule_admin","sale.price.rule admin","model_sale_price_rule","purchase_sale_price_approval.group_sale_price_admin",1,1,1,1
+"access_sale_price_rule_line_user","sale.price.rule.line user","model_sale_price_rule_line","purchase_sale_price_approval.group_sale_price_user",1,0,0,0
+"access_sale_price_rule_line_manager","sale.price.rule.line manager","model_sale_price_rule_line","purchase_sale_price_approval.group_sale_price_manager",1,1,1,0
+"access_sale_price_rule_line_admin","sale.price.rule.line admin","model_sale_price_rule_line","purchase_sale_price_approval.group_sale_price_admin",1,1,1,1
+"access_sale_price_update_user","sale.price.update user","model_sale_price_update","purchase_sale_price_approval.group_sale_price_user",1,0,0,0
+"access_sale_price_update_manager","sale.price.update manager","model_sale_price_update","purchase_sale_price_approval.group_sale_price_manager",1,1,1,0
+"access_sale_price_update_admin","sale.price.update admin","model_sale_price_update","purchase_sale_price_approval.group_sale_price_admin",1,1,1,1
+"access_sale_price_history_user","sale.price.history user","model_sale_price_history","purchase_sale_price_approval.group_sale_price_user",1,0,0,0
+"access_sale_price_history_manager","sale.price.history manager","model_sale_price_history","purchase_sale_price_approval.group_sale_price_manager",1,0,1,0
+"access_sale_price_history_admin","sale.price.history admin","model_sale_price_history","purchase_sale_price_approval.group_sale_price_admin",1,0,1,0
+"access_batch_sale_price_approval_wizard_manager","batch.sale.price.approval.wizard manager","model_batch_sale_price_approval_wizard","purchase_sale_price_approval.group_sale_price_manager",1,1,1,0
+"access_batch_sale_price_approval_wizard_admin","batch.sale.price.approval.wizard admin","model_batch_sale_price_approval_wizard","purchase_sale_price_approval.group_sale_price_admin",1,1,1,0

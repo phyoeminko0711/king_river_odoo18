@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="mail_activity_sale_price_review" model="mail.activity.type">
+        <field name="name">Review Sale Price Update</field>
+        <field name="summary">Review Sale Price Update</field>
+        <field name="default_note">Review and approve or reject the pending sale price update.</field>
+        <field name="category">default</field>
+        <field name="icon">fa-tags</field>
+    </record>
+</odoo>

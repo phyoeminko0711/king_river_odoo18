@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sale_price_rule_search" model="ir.ui.view">
+        <field name="name">sale.price.rule.search</field>
+        <field name="model">sale.price.rule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Rule Name"/>
+                <field name="currency_id" string="Currency"/>
+                <filter name="filter_active" string="Active" domain="[('state', '=', 'active')]"/>
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_currency" string="Currency" context="{'group_by': 'currency_id'}"/>
+                    <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_sale_price_rule_list" model="ir.ui.view">
+        <field name="name">sale.price.rule.list</field>
+        <field name="model">sale.price.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" string="Rule Name"/>
+                <field name="currency_id" string="Currency"/>
+                <field name="priority" string="Priority"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-muted="state == 'archived'"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_sale_price_rule_form" model="ir.ui.view">
+        <field name="name">sale.price.rule.form</field>
+        <field name="model">sale.price.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_activate" type="object" string="Activate" class="btn-primary" invisible="state != 'draft'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="action_set_to_draft" type="object" string="Set to Draft" invisible="state != 'active'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="action_archive" type="object" string="Archive" invisible="state == 'archived'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,archived"/>
+                </header>
+                <sheet>
+                    <group string="Rule Information">
+                        <group>
+                            <field name="name" string="Rule Name" readonly="state != 'draft'"/>
+                            <field name="currency_id" string="Currency" readonly="state != 'draft'"/>
+                            <field name="priority" string="Priority" readonly="state != 'draft'"/>
+                            <field name="active" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Pricing Rules">
+                            <field name="line_ids" readonly="state != 'draft'" invisible="state != 'draft'">
+                                <list editable="bottom" delete="true">
+                                    <field name="apply_on" string="Apply On"/>
+                                    <field name="categ_id" string="Product Category" invisible="apply_on != 'category'"/>
+                                    <field name="product_id" string="Product" invisible="apply_on != 'product'"/>
+                                    <field name="from_amount" string="From Amount"/>
+                                    <field name="to_amount" string="To Amount"/>
+                                    <field name="markup_type" string="Markup Type"/>
+                                    <field name="markup_value" string="Markup"/>
+                                    <field name="valid_from" string="Valid From"/>
+                                    <field name="valid_to" string="Valid To"/>
+                                </list>
+                            </field>
+                            <field name="line_ids" readonly="1" invisible="state == 'draft'">
+                                <list create="false" delete="false" edit="false">
+                                    <field name="apply_on" string="Apply On"/>
+                                    <field name="categ_id" string="Product Category" invisible="apply_on != 'category'"/>
+                                    <field name="product_id" string="Product" invisible="apply_on != 'product'"/>
+                                    <field name="from_amount" string="From Amount"/>
+                                    <field name="to_amount" string="To Amount"/>
+                                    <field name="markup_type" string="Markup Type"/>
+                                    <field name="markup_value" string="Markup"/>
+                                    <field name="valid_from" string="Valid From"/>
+                                    <field name="valid_to" string="Valid To"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="note" readonly="state != 'draft'"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sale_price_rules" model="ir.actions.act_window">
+        <field name="name">Sale Price Rules</field>
+        <field name="res_model">sale.price.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_sale_price_rule_search"/>
+    </record>
+</odoo>

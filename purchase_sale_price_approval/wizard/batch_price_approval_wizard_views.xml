@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_batch_sale_price_approval_wizard_form" model="ir.ui.view">
+        <field name="name">batch.sale.price.approval.wizard.form</field>
+        <field name="model">batch.sale.price.approval.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="action_type"/>
+                    <field name="rejection_reason" invisible="action_type != 'reject'" required="action_type == 'reject'"/>
+                </group>
+                <field name="update_ids" nolabel="1">
+                    <list create="false" delete="false" edit="false">
+                        <field name="product_id"/>
+                        <field name="old_sale_price"/>
+                        <field name="calculated_sale_price"/>
+                        <field name="approved_sale_price"/>
+                        <field name="currency_id" column_invisible="True"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_process" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_open_batch_sale_price_approval_approve" model="ir.actions.act_window">
+        <field name="name">Approve Sale Price Updates</field>
+        <field name="res_model">batch.sale.price.approval.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_action_type': 'approve'}</field>
+        <field name="binding_model_id" ref="purchase_sale_price_approval.model_sale_price_update"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('purchase_sale_price_approval.group_sale_price_manager'))]"/>
+    </record>
+
+    <record id="action_open_batch_sale_price_approval_reject" model="ir.actions.act_window">
+        <field name="name">Reject Sale Price Updates</field>
+        <field name="res_model">batch.sale.price.approval.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_action_type': 'reject'}</field>
+        <field name="binding_model_id" ref="purchase_sale_price_approval.model_sale_price_update"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('purchase_sale_price_approval.group_sale_price_manager'))]"/>
+    </record>
+</odoo>
