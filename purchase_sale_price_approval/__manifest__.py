@@ -17,6 +17,7 @@
         "views/sale_price_history_views.xml",
         "views/purchase_order_views.xml",
         "views/menu_views.xml",
+        "data/cleanup_removed_records.xml",
     ],
     "installable": True,
     "application": False,
