@@ -197,7 +197,7 @@ Purchase Unit Price:
 `1,500,000 MMK`
 
 Rule:
-`1,000,000 <= Price < 2,000,000`
+`1,000,000 <= Price <= 2,000,000`
 
 Markup:
 `10%`

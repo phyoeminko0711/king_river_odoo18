@@ -4,26 +4,26 @@
               name="Sale Price Management"
               parent="purchase.menu_purchase_config"
               sequence="90"
-              groups="purchase_sale_price_approval.group_sale_price_user,purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
+              groups="purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
 
     <menuitem id="menu_sale_price_rules"
               name="Sale Price Rules"
               parent="menu_sale_price_management_root"
               action="action_sale_price_rules"
               sequence="10"
-              groups="purchase_sale_price_approval.group_sale_price_user,purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
+              groups="purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
 
     <menuitem id="menu_sale_price_updates"
               name="Sale Price Updates"
               parent="menu_sale_price_management_root"
               action="action_sale_price_updates"
               sequence="20"
-              groups="purchase_sale_price_approval.group_sale_price_user,purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
+              groups="purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
 
     <menuitem id="menu_sale_price_history"
               name="Sale Price History"
               parent="menu_sale_price_management_root"
               action="action_sale_price_history"
               sequence="30"
-              groups="purchase_sale_price_approval.group_sale_price_user,purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
+              groups="purchase_sale_price_approval.group_sale_price_manager,purchase_sale_price_approval.group_sale_price_admin"/>
 </odoo>

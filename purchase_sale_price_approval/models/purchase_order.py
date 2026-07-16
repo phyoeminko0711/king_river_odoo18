@@ -18,28 +18,18 @@ class PurchaseOrder(models.Model):
 
     @api.model
     def _get_sale_price_approval_settings(self):
-        params = self.env["ir.config_parameter"].sudo()
         return {
-            "enabled": str(
-                params.get_param("purchase_sale_price_approval.enable_sale_price_approval", default="False")
-            ).lower()
-            in ("true", "1", "yes"),
-            "include_service_products": str(
-                params.get_param("purchase_sale_price_approval.include_service_products", default="False")
-            ).lower()
-            in ("true", "1", "yes"),
-            "activity_user_ids": [
-                int(user_id)
-                for user_id in params.get_param(
-                    "purchase_sale_price_approval.activity_user_ids",
-                    default="",
-                ).split(",")
-                if user_id
-            ],
+            "enabled": True,
+            "include_service_products": False,
         }
 
     def button_confirm(self):
         result = super().button_confirm()
+        self._generate_pending_sale_price_updates()
+        return result
+
+    def button_done(self):
+        result = super().button_done()
         self._generate_pending_sale_price_updates()
         return result
 
@@ -90,17 +80,15 @@ class PurchaseOrder(models.Model):
             "rule_line_id": rule_line.id,
             "effective_date": effective_date,
             "conversion_date": effective_date,
+            "requested_by": self.env.user.id,
         }
 
     def _schedule_sale_price_activities(self, updates):
         if not updates:
             return
-        settings = self._get_sale_price_approval_settings()
-        users = self.env["res.users"].browse(settings["activity_user_ids"])
-        if not users:
-            users = self.env.ref(
-                "purchase_sale_price_approval.group_sale_price_manager"
-            ).users.filtered(lambda user: self.company_id in user.company_ids)
+        users = self.env.ref(
+            "purchase_sale_price_approval.group_sale_price_manager"
+        ).users.filtered(lambda user: self.company_id in user.company_ids)
         activity_type = self.env.ref("purchase_sale_price_approval.mail_activity_sale_price_review")
         for update in updates:
             for user in users:
@@ -118,27 +106,28 @@ class PurchaseOrder(models.Model):
                 )
 
     def _has_meaningful_update_change(self, existing_update, new_vals):
-        fields_to_compare = [
+        monetary_fields = [
             "purchase_price",
             "converted_purchase_price",
             "calculated_sale_price",
             "approved_sale_price",
-            "rule_line_id",
         ]
-        for field_name in fields_to_compare:
-            if existing_update[field_name] != new_vals[field_name]:
+        for field_name in monetary_fields:
+            if existing_update[field_name] != new_vals.get(field_name):
                 return True
+        if existing_update.rule_line_id.id != new_vals.get("rule_line_id"):
+            return True
         return False
 
     def _generate_pending_sale_price_updates(self):
-        sale_price_update_model = self.env["sale.price.update"]
-        rule_line_model = self.env["sale.price.rule.line"]
+        sale_price_update_model = self.env["sale.price.update"].sudo()
+        rule_line_model = self.env["sale.price.rule.line"].sudo()
         settings = self._get_sale_price_approval_settings()
         if not settings["enabled"]:
             return
 
         for order in self:
-            created_updates = self.env["sale.price.update"]
+            created_updates = sale_price_update_model.browse()
             effective_date = order.date_approve.date() if order.date_approve else fields.Date.context_today(order)
             for order_line in order.order_line.filtered(lambda line: not line.display_type and line.product_id):
                 if not settings["include_service_products"] and order_line.product_id.type == "service":

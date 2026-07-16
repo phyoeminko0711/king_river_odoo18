@@ -300,7 +300,7 @@ class SalePriceRuleLine(models.Model):
     def _ranges_overlap(self, first_from, first_to, second_from, second_to):
         first_upper = float("inf") if not first_to else first_to
         second_upper = float("inf") if not second_to else second_to
-        return max(first_from, second_from) < min(first_upper, second_upper)
+        return max(first_from, second_from) <= min(first_upper, second_upper)
 
     @api.model
     def _dates_overlap(self, first_from, first_to, second_from, second_to):
@@ -370,7 +370,7 @@ class SalePriceRuleLine(models.Model):
             )
             if converted_price < line.from_amount:
                 continue
-            if line.to_amount and converted_price >= line.to_amount:
+            if line.to_amount and converted_price > line.to_amount:
                 continue
 
             valid_from = fields.Date.to_date(line.valid_from)

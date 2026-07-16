@@ -12,41 +12,4 @@
             </xpath>
         </field>
     </record>
-
-    <record id="res_config_settings_view_form_purchase_sale_price_approval" model="ir.ui.view">
-        <field name="name">res.config.settings.view.form.purchase.sale.price.approval</field>
-        <field name="model">res.config.settings</field>
-        <field name="inherit_id" ref="purchase.res_config_settings_view_form_purchase"/>
-        <field name="arch" type="xml">
-            <xpath expr="//app[@name='purchase']" position="inside">
-                <block title="Sale Price Approval" name="sale_price_approval_settings_block">
-                    <setting id="enable_sale_price_approval_setting" help="Create pending sale price approval records when purchase orders are confirmed.">
-                        <field name="enable_sale_price_approval"/>
-                        <div class="content-group" invisible="not enable_sale_price_approval">
-                            <div class="row mt16">
-                                <label for="include_service_products" class="col-lg-4 o_light_label"/>
-                                <field name="include_service_products"/>
-                            </div>
-                            <div class="row mt16">
-                                <label for="allow_manual_approved_price" class="col-lg-4 o_light_label"/>
-                                <field name="allow_manual_approved_price"/>
-                            </div>
-                            <div class="row mt16">
-                                <label for="block_price_decrease" class="col-lg-4 o_light_label"/>
-                                <field name="block_price_decrease"/>
-                            </div>
-                            <div class="row mt16">
-                                <label for="sale_price_rounding" class="col-lg-4 o_light_label"/>
-                                <field name="sale_price_rounding"/>
-                            </div>
-                            <div class="row mt16">
-                                <label for="activity_user_ids" class="col-lg-4 o_light_label"/>
-                                <field name="activity_user_ids" widget="many2many_tags"/>
-                            </div>
-                        </div>
-                    </setting>
-                </block>
-            </xpath>
-        </field>
-    </record>
 </odoo>

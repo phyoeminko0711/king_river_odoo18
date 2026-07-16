@@ -1,6 +1,5 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tools.float_utils import float_compare, float_round
 
 
 class SalePriceUpdate(models.Model):
@@ -167,24 +166,8 @@ class SalePriceUpdate(models.Model):
             raise AccessError(_("You are not allowed to approve or reject sale price updates."))
 
     @api.model
-    def _get_setting_bool(self, key, default=False):
-        value = self.env["ir.config_parameter"].sudo().get_param(key)
-        if value is None:
-            return default
-        return str(value).lower() in ("true", "1", "yes")
-
-    @api.model
-    def _get_setting_float(self, key, default=0.0):
-        value = self.env["ir.config_parameter"].sudo().get_param(key)
-        return float(value or default)
-
-    @api.model
     def _round_sale_price(self, amount, currency):
-        rounding = self._get_setting_float("purchase_sale_price_approval.sale_price_rounding")
-        rounded = amount
-        if rounding:
-            rounded = float_round(amount, precision_rounding=rounding)
-        return currency.round(rounded)
+        return currency.round(amount)
 
     @api.model
     def _calculate_sale_price(self, purchase_price, markup_type, markup_value, currency):
@@ -281,33 +264,8 @@ class SalePriceUpdate(models.Model):
             )
             if record.approved_sale_price < 0:
                 raise ValidationError(_("Approved Sale Price must be greater than or equal to zero."))
-            if not self._get_setting_bool("purchase_sale_price_approval.allow_manual_approved_price", True):
-                if float_compare(
-                    record.approved_sale_price,
-                    record.calculated_sale_price,
-                    precision_rounding=record.currency_id.rounding,
-                ):
-                    raise ValidationError(
-                        _("Manual approval price changes are disabled. Approved Sale Price must match the calculated price.")
-                    )
             company_currency = record.company_id.currency_id
-            current_price_company = record.product_tmpl_id.with_company(record.company_id).list_price
             conversion_date = record.effective_date or fields.Date.context_today(record)
-            current_price = company_currency._convert(
-                current_price_company,
-                record.currency_id,
-                record.company_id,
-                conversion_date,
-            )
-            if self._get_setting_bool("purchase_sale_price_approval.block_price_decrease"):
-                if float_compare(
-                    record.approved_sale_price,
-                    current_price,
-                    precision_rounding=record.currency_id.rounding,
-                ) < 0:
-                    raise ValidationError(
-                        _("Approved Sale Price cannot be lower than the current product sale price.")
-                    )
             approved_sale_price_company = record.currency_id._convert(
                 record.approved_sale_price,
                 company_currency,
