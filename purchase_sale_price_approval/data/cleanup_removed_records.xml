@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <delete model="ir.ui.view" id="res_config_settings_view_form_purchase_sale_price_approval"/>
+
+    <delete model="ir.model.access" id="access_sale_price_rule_user"/>
+    <delete model="ir.model.access" id="access_sale_price_rule_line_user"/>
+    <delete model="ir.model.access" id="access_sale_price_update_user"/>
+    <delete model="ir.model.access" id="access_sale_price_history_user"/>
+    <delete model="res.groups" id="group_sale_price_user"/>
+
+    <delete model="ir.config_parameter"
+            search="[('key', 'in', [
+                'purchase_sale_price_approval.enable_sale_price_approval',
+                'purchase_sale_price_approval.include_service_products',
+                'purchase_sale_price_approval.allow_manual_approved_price',
+                'purchase_sale_price_approval.block_price_decrease',
+                'purchase_sale_price_approval.sale_price_rounding',
+                'purchase_sale_price_approval.activity_user_ids'
+            ])]"/>
+</odoo>
