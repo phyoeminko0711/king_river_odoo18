@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_workshop_job_card" model="ir.sequence">
+        <field name="name">Workshop Job Card</field>
+        <field name="code">workshop.job.card</field>
+        <field name="prefix">JC/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+    </record>
+</odoo>
+

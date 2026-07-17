@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="repair.repair_order_menu" model="ir.ui.menu">
+        <field name="name">Repair Orders</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="repair.repair_menu_config" model="ir.ui.menu">
+        <field name="sequence">100</field>
+    </record>
+
+    <menuitem id="menu_job_card"
+              name="Job Cards"
+              parent="repair.menu_repair_order"
+              action="action_job_card"
+              sequence="1"/>
+</odoo>

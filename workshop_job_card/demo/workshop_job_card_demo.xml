@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="demo_customer_abc_trading" model="res.partner">
+        <field name="name">ABC Trading (Demo)</field>
+        <field name="phone">+95 1 555 0100</field>
+        <field name="customer_rank">1</field>
+    </record>
+
+    <record id="demo_vehicle_brand_hyundai" model="workshop.vehicle.brand">
+        <field name="name">Hyundai (Demo)</field>
+    </record>
+
+    <record id="demo_vehicle_model_grand_starex" model="workshop.vehicle.model">
+        <field name="name">Grand Starex Demo</field>
+        <field name="brand_id" ref="demo_vehicle_brand_hyundai"/>
+    </record>
+
+    <record id="demo_customer_vehicle_grand_starex" model="workshop.customer.vehicle">
+        <field name="customer_id" ref="demo_customer_abc_trading"/>
+        <field name="vehicle_brand_id" ref="demo_vehicle_brand_hyundai"/>
+        <field name="vehicle_model_id" ref="demo_vehicle_model_grand_starex"/>
+        <field name="plate_no">YGN-DEMO-1234</field>
+        <field name="chassis_no">DEMO-CHASSIS-0001</field>
+        <field name="engine_no">DEMO-ENGINE-0001</field>
+        <field name="color">Silver</field>
+        <field name="mileage">78500</field>
+    </record>
+
+    <record id="demo_job_technician" model="hr.job">
+        <field name="name">Workshop Technician (Demo)</field>
+    </record>
+
+    <record id="demo_employee_technician" model="hr.employee">
+        <field name="name">Ko Aung - Demo Technician</field>
+        <field name="job_id" ref="demo_job_technician"/>
+    </record>
+
+    <record id="demo_job_card_option_brake_pad" model="product.product">
+        <field name="name">Front Brake Pad Option (Demo)</field>
+        <field name="default_code">JC-BP-DEMO</field>
+        <field name="type">consu</field>
+        <field name="list_price">125000</field>
+    </record>
+
+    <record id="demo_job_card_grand_starex" model="workshop.job.card">
+        <field name="customer_id" ref="demo_customer_abc_trading"/>
+        <field name="vehicle_id" ref="demo_customer_vehicle_grand_starex"/>
+        <field name="technician_id" ref="demo_employee_technician"/>
+        <field name="complaint">Brake noise during low-speed stopping.</field>
+        <field name="diagnosis">Front brake pads require inspection.</field>
+        <field name="recommendation">Inspect the front braking system.</field>
+    </record>
+
+    <record id="demo_job_card_option_line" model="workshop.job.card.line">
+        <field name="job_card_id" ref="demo_job_card_grand_starex"/>
+        <field name="repair_service">Front Brake Repair</field>
+        <field name="product_id" ref="demo_job_card_option_brake_pad"/>
+        <field name="quantity">1</field>
+        <field name="product_uom_id" ref="uom.product_uom_unit"/>
+        <field name="unit_price">125000</field>
+        <field name="selected" eval="True"/>
+    </record>
+</odoo>

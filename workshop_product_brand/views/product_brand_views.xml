@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workshop_product_brand_list" model="ir.ui.view">
+        <field name="name">workshop.product.brand.list</field>
+        <field name="model">workshop.product.brand</field>
+        <field name="arch" type="xml">
+            <list string="Part Brands">
+                <field name="name" string="Brand Name"/>
+                <field name="code"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_workshop_product_brand_form" model="ir.ui.view">
+        <field name="name">workshop.product.brand.form</field>
+        <field name="model">workshop.product.brand</field>
+        <field name="arch" type="xml">
+            <form string="Part Brand">
+                <sheet>
+                    <group>
+                        <field name="name" string="Brand Name"/>
+                        <field name="code"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_workshop_product_brand_search" model="ir.ui.view">
+        <field name="name">workshop.product.brand.search</field>
+        <field name="model">workshop.product.brand</field>
+        <field name="arch" type="xml">
+            <search string="Search Part Brands">
+                <field name="name" string="Brand Name"/>
+                <field name="code"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"
+                        context="{'active_test': False}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_workshop_product_brand" model="ir.actions.act_window">
+        <field name="name">Part Brands</field>
+        <field name="res_model">workshop.product.brand</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_workshop_product_brand_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first workshop part brand.</p>
+            <p>Assign one reusable Brand to each spare-part product.</p>
+        </field>
+    </record>
+</odoo>

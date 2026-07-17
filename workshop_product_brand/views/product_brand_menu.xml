@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_workshop_product_brand"
+              name="Part Brands"
+              parent="repair.repair_menu_config"
+              action="action_workshop_product_brand"
+              sequence="4"
+              />
+</odoo>
