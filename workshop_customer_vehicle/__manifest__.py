@@ -1,0 +1,21 @@
+{
+    "name": "Workshop Customer Vehicle",
+    "version": "18.0.1.1.2",
+    "summary": "Manage customer-owned vehicles independently from products",
+    "category": "Repair/Operations",
+    "author": "dev_pmk",
+    "license": "LGPL-3",
+    "depends": ["base", "contacts", "mail", "repair"],
+    "data": [
+        "security/vehicle_security.xml",
+        "security/ir.model.access.csv",
+        "data/vehicle_sequence.xml",
+        "views/customer_vehicle_views.xml",
+        "views/vehicle_brand_views.xml",
+        "views/vehicle_model_views.xml",
+        "views/res_partner_views.xml",
+        "views/vehicle_menu.xml",
+    ],
+    "installable": True,
+    "application": False,
+}

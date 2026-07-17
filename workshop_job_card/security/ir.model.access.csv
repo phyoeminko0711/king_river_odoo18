@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_workshop_job_card_stock_user,workshop.job.card user,model_workshop_job_card,,1,1,1,0
+access_workshop_job_card_service_stock_user,workshop.job.card.service user,model_workshop_job_card_service,,1,1,1,0
+access_workshop_job_card_option_stock_user,workshop.job.card.option user,model_workshop_job_card_option,,1,1,1,0
+access_workshop_job_card_line_stock_user,workshop.job.card.line user,model_workshop_job_card_line,,1,1,1,0

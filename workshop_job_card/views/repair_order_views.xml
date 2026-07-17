@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_repair_order_form_job_card_link" model="ir.ui.view">
+        <field name="name">repair.order.form.job.card.link</field>
+        <field name="model">repair.order</field>
+        <field name="inherit_id" ref="repair.view_repair_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_job_card" type="object"
+                        class="oe_stat_button" icon="fa-clipboard"
+                        invisible="not job_card_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Job Card</span>
+                    </div>
+                </button>
+            </xpath>
+            <field name="partner_id" position="after">
+                <field name="job_card_id" invisible="1"/>
+                <field name="customer_vehicle_id" readonly="1"
+                       invisible="not job_card_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

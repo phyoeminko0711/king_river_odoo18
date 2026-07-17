@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_job_card_list" model="ir.ui.view">
+        <field name="name">workshop.job.card.list</field>
+        <field name="model">workshop.job.card</field>
+        <field name="arch" type="xml">
+            <list string="Job Cards">
+                <field name="name" string="Job Card No."/>
+                <field name="job_card_date" string="Date"/>
+                <field name="customer_id"/>
+                <field name="vehicle_id"/>
+                <field name="plate_no"/>
+                <field name="technician_id"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-muted="state in ['draft', 'cancelled']"
+                       decoration-warning="state == 'sent'"
+                       decoration-success="state in ['approved', 'repair_created']"
+                       decoration-danger="state == 'rejected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_job_card_form" model="ir.ui.view">
+        <field name="name">workshop.job.card.form</field>
+        <field name="model">workshop.job.card</field>
+        <field name="arch" type="xml">
+            <form string="Job Card">
+                <header>
+                    <button name="action_send_to_customer" type="object"
+                            string="Send to Customer" class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="oe_highlight" invisible="state != 'sent'"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'sent'"/>
+                    <button name="action_create_repair_order" type="object"
+                            string="Create Repair Order" class="oe_highlight"
+                            invisible="state != 'approved' or repair_order_id"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ['draft', 'sent', 'approved']"/>
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft"
+                            invisible="state not in ['rejected', 'cancelled']"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent,approved,repair_created"/>
+                </header>
+                <sheet>
+                    <field name="repair_order_id" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_repair_order" type="object"
+                                class="oe_stat_button" icon="fa-wrench"
+                                invisible="not repair_order_id">
+                            <field name="repair_order_count" widget="statinfo"
+                                   string="Repair Order"/>
+                        </button>
+                    </div>
+                    <group string="Job Card">
+                        <field name="name" string="Job Card No."/>
+                        <field name="job_card_date" readonly="state != 'draft'"/>
+                        <field name="approved_date"
+                               invisible="state not in ['approved', 'repair_created']"/>
+                        <field name="approved_by"
+                               invisible="state not in ['approved', 'repair_created']"/>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="customer_id"
+                                   context="{'res_partner_search_mode': 'customer'}"
+                                   readonly="state != 'draft'"/>
+                            <field name="customer_phone"/>
+                            <field name="vehicle_id"
+                                   domain="[('customer_id', '=', customer_id)]"
+                                   options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="plate_no"/>
+                            <field name="mileage" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="technician_id" readonly="state != 'draft'"/>
+                            <field name="technician_job_id"/>
+                            <field name="vehicle_brand_id"/>
+                            <field name="vehicle_model_id"/>
+                            <field name="chassis_no"/>
+                            <field name="engine_no"/>
+                            <field name="color"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Complaint &amp; Inspection"
+                              name="complaint_inspection">
+                            <group>
+                                <field name="complaint" readonly="state != 'draft'"/>
+                                <field name="diagnosis" readonly="state != 'draft'"/>
+                                <field name="recommendation" readonly="state != 'draft'"/>
+                            </group>
+                        </page>
+                        <page string="Repair Options" name="repair_options">
+                            <field name="line_ids" id="repair_options_draft"
+                                   invisible="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="repair_service"/>
+                                    <field name="product_id"/>
+                                    <field name="brand_id" readonly="1"/>
+                                    <field name="part_number" readonly="1"/>
+                                    <field name="warranty"/>
+                                    <field name="quantity"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="unit_price"/>
+                                    <field name="amount" readonly="1"/>
+                                    <field name="selected"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <field name="line_ids" id="repair_options_sent"
+                                   invisible="state != 'sent'">
+                                <list editable="bottom" create="0" delete="0">
+                                    <field name="repair_service" readonly="1"/>
+                                    <field name="product_id" readonly="1"/>
+                                    <field name="brand_id" readonly="1"/>
+                                    <field name="part_number" readonly="1"/>
+                                    <field name="warranty" readonly="1"/>
+                                    <field name="quantity" readonly="1"/>
+                                    <field name="product_uom_id" readonly="1"/>
+                                    <field name="unit_price" readonly="1"/>
+                                    <field name="amount" readonly="1"/>
+                                    <field name="selected"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <field name="line_ids" id="repair_options_readonly"
+                                   invisible="state not in ['approved', 'repair_created', 'rejected', 'cancelled']"
+                                   readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="repair_service"/>
+                                    <field name="product_id"/>
+                                    <field name="brand_id"/>
+                                    <field name="part_number"/>
+                                    <field name="warranty"/>
+                                    <field name="quantity"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="unit_price"/>
+                                    <field name="amount"/>
+                                    <field name="selected"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="selected_line_count" readonly="1"/>
+                                <field name="selected_total" readonly="1"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_job_card_search" model="ir.ui.view">
+        <field name="name">workshop.job.card.search</field>
+        <field name="model">workshop.job.card</field>
+        <field name="arch" type="xml">
+            <search string="Search Job Cards">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="vehicle_id"/>
+                <field name="plate_no"/>
+                <field name="technician_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Sent to Customer" name="sent"
+                        domain="[('state', '=', 'sent')]"/>
+                <filter string="Approved" name="approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter string="Repair Order Created" name="repair_created"
+                        domain="[('state', '=', 'repair_created')]"/>
+                <filter string="Rejected" name="rejected"
+                        domain="[('state', '=', 'rejected')]"/>
+                <filter string="Cancelled" name="cancelled"
+                        domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_customer"
+                            context="{'group_by': 'customer_id'}"/>
+                    <filter string="Vehicle" name="group_vehicle"
+                            context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Technician" name="group_technician"
+                            context="{'group_by': 'technician_id'}"/>
+                    <filter string="State" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_job_card" model="ir.actions.act_window">
+        <field name="name">Job Cards</field>
+        <field name="path">job-cards</field>
+        <field name="res_model">workshop.job.card</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_job_card_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Job Card</p>
+            <p>Record the customer, vehicle, technician, and inspection details.</p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_customer_vehicles" model="ir.ui.view">
+        <field name="name">res.partner.form.customer.vehicles</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_vehicles"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-car"
+                        groups="stock.group_stock_user">
+                    <field name="vehicle_count" widget="statinfo" string="Vehicles"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_workshop_customer_vehicle_user,workshop.customer.vehicle user,model_workshop_customer_vehicle,stock.group_stock_user,1,1,1,1
+access_workshop_vehicle_brand_user,workshop.vehicle.brand user,model_workshop_vehicle_brand,stock.group_stock_user,1,0,0,0
+access_workshop_vehicle_brand_manager,workshop.vehicle.brand manager,model_workshop_vehicle_brand,stock.group_stock_manager,1,1,1,1
+access_workshop_vehicle_model_user,workshop.vehicle.model user,model_workshop_vehicle_model,stock.group_stock_user,1,0,0,0
+access_workshop_vehicle_model_manager,workshop.vehicle.model manager,model_workshop_vehicle_model,stock.group_stock_manager,1,1,1,1
+

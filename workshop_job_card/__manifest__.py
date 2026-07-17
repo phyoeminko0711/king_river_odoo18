@@ -1,0 +1,30 @@
+{
+    "name": "Workshop Job Card",
+    "version": "18.0.1.4.0",
+    "summary": "Customer Job Cards integrated with Repair Orders",
+    "category": "Repair/Operations",
+    "author": "dev_pmk",
+    "license": "LGPL-3",
+    "depends": [
+        "base",
+        "mail",
+        "repair",
+        "hr",
+        "workshop_product_brand",
+        "workshop_customer_vehicle",
+    ],
+    "data": [
+        "security/job_card_security.xml",
+        "security/ir.model.access.csv",
+        "data/job_card_sequence.xml",
+        "views/job_card_views.xml",
+        "views/repair_order_views.xml",
+        "views/job_card_menu.xml",
+        "data/security_cleanup.xml",
+    ],
+    "demo": [
+        "demo/workshop_job_card_demo.xml",
+    ],
+    "installable": True,
+    "application": False,
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_customer_vehicle"
+              name="Vehicles"
+              parent="repair.menu_repair_order"
+              action="action_customer_vehicle"
+              groups="stock.group_stock_user"
+              sequence="5"/>
+
+    <menuitem id="menu_vehicle_brand"
+              name="Vehicle Brands"
+              parent="repair.repair_menu_config"
+              action="action_vehicle_brand"
+              groups="stock.group_stock_manager"
+              sequence="10"/>
+
+    <menuitem id="menu_vehicle_model"
+              name="Vehicle Models"
+              parent="repair.repair_menu_config"
+              action="action_vehicle_model"
+              groups="stock.group_stock_manager"
+              sequence="11"/>
+</odoo>
+

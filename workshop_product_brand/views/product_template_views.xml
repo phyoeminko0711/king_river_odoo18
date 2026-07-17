@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_tree_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.template.list.workshop.brand</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="default_code" position="after">
+                <field name="brand_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_template_form_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.template.form.workshop.brand</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <field name="default_code" position="after">
+                <field name="brand_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_product_tree_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.product.list.workshop.brand</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_product_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="default_code" position="after">
+                <field name="brand_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_variant_easy_edit_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.product.form.easy.workshop.brand</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_variant_easy_edit_view"/>
+        <field name="arch" type="xml">
+            <field name="barcode" position="after">
+                <field name="brand_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_normal_form_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.product.form.workshop.brand</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <field name="barcode" position="after">
+                <field name="brand_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_search_form_view_inherit_workshop_brand" model="ir.ui.view">
+        <field name="name">product.template.search.workshop.brand</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <field name="categ_id" position="after">
+                <field name="brand_id"/>
+            </field>
+            <filter name="categ_id" position="after">
+                <filter name="group_by_brand" string="Brand"
+                        context="{'group_by': 'brand_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

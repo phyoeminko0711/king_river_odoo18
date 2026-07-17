@@ -1,0 +1,8 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"access_workshop_product_brand_user","workshop.product.brand user","model_workshop_product_brand","base.group_user",1,0,0,0
+"access_workshop_product_brand_manager","workshop.product.brand manager","model_workshop_product_brand","stock.group_stock_manager",1,1,1,1
+"access_workshop_product_brand_system","workshop.product.brand system","model_workshop_product_brand","base.group_system",1,1,1,1
+"access_workshop_product_brand_type_user","workshop.product.brand.type user","model_workshop_product_brand_type","base.group_user",1,0,0,0
+"access_workshop_product_brand_type_manager","workshop.product.brand.type manager","model_workshop_product_brand_type","stock.group_stock_manager",1,1,1,1
+"access_workshop_product_brand_type_system","workshop.product.brand.type system","model_workshop_product_brand_type","base.group_system",1,1,1,1
+"access_product_product_brand_manager","product.product brand manager","product.model_product_product","stock.group_stock_manager",1,1,0,0
