@@ -97,15 +97,12 @@
                             </group>
                         </page>
                         <page string="Repair Options" name="repair_options">
-                            <separator string="Repair Services"/>
-                            <field name="service_line_ids" nolabel="1"
-                                   readonly="state != 'draft'">
-                                <list editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="repair_service_id"/>
-                                </list>
-                            </field>
-
+                            <button name="action_open_add_repair_service_wizard"
+                                    type="object"
+                                    string="Add Repair Service"
+                                    class="btn-primary"
+                                    icon="fa-plus"
+                                    invisible="state not in ['draft', 'sent']"/>
                             <separator string="Product Options"/>
                             <field name="line_ids" id="repair_options" nolabel="1"
                                    readonly="state not in ['draft', 'sent']">

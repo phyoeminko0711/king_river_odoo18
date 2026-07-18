@@ -264,6 +264,17 @@ class WorkshopJobCard(models.Model):
     def _workflow_write(self, vals):
         return super(WorkshopJobCard, self).write(vals)
 
+    def action_open_add_repair_service_wizard(self):
+        self._ensure_state("draft", "sent")
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "workshop_job_card.action_add_repair_service_wizard"
+        )
+        action["context"] = {
+            **self.env.context,
+            "default_job_card_id": self.id,
+        }
+        return action
+
     def _services_without_single_selection(self):
         self.ensure_one()
         return self.service_line_ids.filtered(

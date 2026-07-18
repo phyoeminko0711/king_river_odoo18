@@ -24,14 +24,12 @@ directly linked product. The same helper runs for form onchange and backend
 create/write operations, avoids duplicates, and preserves edited quantity and
 price when a product is shared by the old and new service.
 
-The Job Card form shows an editable Repair Services list above one flat Product
-Options table. Generated products and service names are readonly, Draft users
-may edit warranty, quantity, UoM, and price, and option selection remains open
-in Draft and Sent. The footer shows only the selected-option Total.
-
-The inline Repair Service list persists only the selected service and sequence;
-backend generation then creates complete Product Option rows. This avoids empty
-nested One2many commands while retaining model-level onchange support.
+The Job Card form uses an Add Repair Service modal instead of an editable nested
+service table. Draft and Sent users may select several services at once; already
+added services are silently skipped. The existing helper generates complete
+Product Option rows, which remain visible in one flat table. Draft users may
+edit warranty, quantity, UoM, and price, option selection remains open in Draft
+and Sent, and the footer shows only the selected-option Total.
 
 `total_amount` is the stored Job Card Total used by the form and list views. It
 sums only selected Product Options; unselected generated alternatives never

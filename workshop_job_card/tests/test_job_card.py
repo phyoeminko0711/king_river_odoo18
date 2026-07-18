@@ -2,7 +2,7 @@ from lxml import etree
 from psycopg2 import IntegrityError
 
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests import Form, tagged
+from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
 
 
@@ -397,12 +397,15 @@ class TestWorkshopJobCard(TransactionCase):
             [],
         )
         service_fields = form.xpath("//field[@name='service_line_ids']")
-        self.assertEqual(len(service_fields), 1)
-        self.assertEqual(
-            service_fields[0].xpath("./list/field/@name"),
-            ["sequence", "repair_service_id"],
+        self.assertFalse(service_fields)
+        add_button = form.xpath(
+            "//button[@name='action_open_add_repair_service_wizard']"
         )
-        self.assertEqual(service_fields[0].xpath("./list/@editable"), ["bottom"])
+        self.assertEqual(len(add_button), 1)
+        self.assertEqual(
+            add_button[0].get("invisible"),
+            "state not in ['draft', 'sent']",
+        )
         draft_columns = option_fields[0].xpath("./list/field/@name")
         for field_name in (
             "repair_service_id", "product_id", "brand_id", "part_number", "warranty",
@@ -566,25 +569,89 @@ class TestWorkshopJobCard(TransactionCase):
         self.assertEqual(service_line.option_line_ids.product_id, self.products)
         self.assertTrue(all(service_line.option_line_ids.mapped("generated_by_service")))
 
-    def test_job_card_form_adds_service_without_empty_option_commands(self):
+    def test_add_repair_service_wizard_generates_options_and_skips_duplicates(self):
         card = self._create_card()
-        service = self.env["workshop.repair.service"].create(
+        first_service = self.env["workshop.repair.service"].create(
             {
-                "name": "Form Service Generation Test",
-                "product_ids": [(6, 0, self.products.ids)],
+                "name": "Wizard Brake Service Test",
+                "product_ids": [(6, 0, self.products[:2].ids)],
+            }
+        )
+        second_service = self.env["workshop.repair.service"].create(
+            {
+                "name": "Wizard Oil Service Test",
+                "product_ids": [(6, 0, self.products[2:].ids)],
             }
         )
 
-        with Form(card) as job_card_form:
-            with job_card_form.service_line_ids.new() as service_form:
-                service_form.repair_service_id = service
-
-        service_line = card.service_line_ids.filtered(
-            lambda line: line.repair_service_id == service
+        action = card.action_open_add_repair_service_wizard()
+        self.assertEqual(
+            action["res_model"], "workshop.add.repair.service.wizard"
         )
-        self.assertTrue(service_line)
-        self.assertEqual(service_line.option_line_ids.product_id, self.products)
-        self.assertFalse(service_line.option_line_ids.filtered(lambda line: not line.product_id))
+        self.assertEqual(action["target"], "new")
+        self.assertEqual(action["context"]["default_job_card_id"], card.id)
+
+        wizard = self.env["workshop.add.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "repair_service_ids": [(6, 0, (first_service | second_service).ids)],
+            }
+        )
+        self.assertEqual(
+            wizard.action_add(), {"type": "ir.actions.act_window_close"}
+        )
+
+        self.assertEqual(card.service_line_ids.repair_service_id, first_service | second_service)
+        first_line = card.service_line_ids.filtered(
+            lambda line: line.repair_service_id == first_service
+        )
+        second_line = card.service_line_ids.filtered(
+            lambda line: line.repair_service_id == second_service
+        )
+        self.assertEqual(first_line.option_line_ids.product_id, self.products[:2])
+        self.assertEqual(second_line.option_line_ids.product_id, self.products[2:])
+        self.assertFalse(card.line_ids.filtered(lambda line: not line.product_id))
+
+        duplicate_wizard = self.env["workshop.add.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "repair_service_ids": [(6, 0, first_service.ids)],
+            }
+        )
+        duplicate_wizard.action_add()
+        self.assertEqual(len(card.service_line_ids), 2)
+        self.assertEqual(len(card.line_ids), 3)
+
+    def test_add_repair_service_wizard_validation_and_sent_state(self):
+        card = self._create_card()
+        empty_wizard = self.env["workshop.add.repair.service.wizard"].create(
+            {"job_card_id": card.id}
+        )
+        with self.assertRaisesRegex(
+            ValidationError, "Please select at least one Repair Service"
+        ):
+            empty_wizard.action_add()
+
+        sent_service = self.env["workshop.repair.service"].create(
+            {
+                "name": "Sent Wizard Service Test",
+                "product_ids": [(6, 0, self.products[:1].ids)],
+            }
+        )
+        card._workflow_write({"state": "sent"})
+        wizard = self.env["workshop.add.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "repair_service_ids": [(6, 0, sent_service.ids)],
+            }
+        )
+        wizard.action_add()
+        self.assertEqual(card.service_line_ids.repair_service_id, sent_service)
+        self.assertEqual(card.line_ids.product_id, self.products[:1])
+
+        card._workflow_write({"state": "approved"})
+        with self.assertRaisesRegex(UserError, "current state"):
+            card.action_open_add_repair_service_wizard()
 
     def test_complete_two_service_job_card_demo_flow(self):
         product_values = (

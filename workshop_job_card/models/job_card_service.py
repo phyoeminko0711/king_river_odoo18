@@ -67,9 +67,12 @@ class WorkshopJobCardService(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             card = self.env["workshop.job.card"].browse(vals.get("job_card_id"))
-            if card and card.state != "draft":
+            if card and card.state not in {"draft", "sent"}:
                 raise UserError(
-                    _("Repair Services can only be added to a Draft Job Card.")
+                    _(
+                        "Repair Services can only be added to a Draft or "
+                        "Sent Job Card."
+                    )
                 )
             if vals.get("repair_service_id") and not vals.get("name"):
                 vals["name"] = self.env["workshop.repair.service"].browse(
@@ -136,7 +139,7 @@ class WorkshopJobCardService(models.Model):
                 service_line.option_line_ids = kept_lines | new_lines
                 continue
 
-            if service_line.job_card_id.state != "draft":
+            if service_line.job_card_id.state not in {"draft", "sent"}:
                 continue
             if obsolete:
                 obsolete.with_context(skip_option_generation=True).unlink()
@@ -154,4 +157,7 @@ class WorkshopJobCardService(models.Model):
                 for product in products - existing_products
             ]
             if values:
-                OptionLine.with_context(skip_option_generation=True).create(values)
+                OptionLine.with_context(
+                    skip_option_generation=True,
+                    skip_job_card_state_check=True,
+                ).create(values)
