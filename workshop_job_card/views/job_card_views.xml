@@ -11,6 +11,7 @@
                 <field name="vehicle_id"/>
                 <field name="plate_no"/>
                 <field name="technician_id"/>
+                <field name="total_amount" sum="Total"/>
                 <field name="state"
                        widget="badge"
                        decoration-muted="state in ['draft', 'cancelled']"
@@ -96,58 +97,35 @@
                             </group>
                         </page>
                         <page string="Repair Options" name="repair_options">
-                            <field name="line_ids" id="repair_options_draft"
-                                   invisible="state != 'draft'">
-                                <list editable="bottom">
-                                    <field name="repair_service"/>
-                                    <field name="product_id"/>
-                                    <field name="brand_id" readonly="1"/>
-                                    <field name="part_number" readonly="1"/>
-                                    <field name="warranty"/>
-                                    <field name="quantity"/>
-                                    <field name="product_uom_id"/>
-                                    <field name="unit_price"/>
-                                    <field name="amount" readonly="1"/>
-                                    <field name="selected"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
-                            <field name="line_ids" id="repair_options_sent"
-                                   invisible="state != 'sent'">
+                            <button name="action_open_add_repair_service_wizard"
+                                    type="object"
+                                    string="Add Repair Service"
+                                    class="btn-primary"
+                                    icon="fa-plus"
+                                    invisible="state not in ['draft', 'sent']"/>
+                            <separator string="Product Options"/>
+                            <field name="line_ids" id="repair_options" nolabel="1"
+                                   readonly="state not in ['draft', 'sent']">
                                 <list editable="bottom" create="0" delete="0">
-                                    <field name="repair_service" readonly="1"/>
-                                    <field name="product_id" readonly="1"/>
+                                    <field name="job_card_service_id" column_invisible="True"/>
+                                    <field name="repair_service_id" string="Repair Service" readonly="1"/>
+                                    <field name="generated_by_service" column_invisible="True"/>
+                                    <field name="product_id"
+                                           readonly="generated_by_service or parent.state != 'draft'"/>
                                     <field name="brand_id" readonly="1"/>
                                     <field name="part_number" readonly="1"/>
-                                    <field name="warranty" readonly="1"/>
-                                    <field name="quantity" readonly="1"/>
-                                    <field name="product_uom_id" readonly="1"/>
-                                    <field name="unit_price" readonly="1"/>
+                                    <field name="warranty" readonly="parent.state != 'draft'"/>
+                                    <field name="quantity" readonly="parent.state != 'draft'"/>
+                                    <field name="product_uom_id" readonly="parent.state != 'draft'"/>
+                                    <field name="unit_price" readonly="parent.state != 'draft'"/>
                                     <field name="amount" readonly="1"/>
-                                    <field name="selected"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
-                            <field name="line_ids" id="repair_options_readonly"
-                                   invisible="state not in ['approved', 'repair_created', 'rejected', 'cancelled']"
-                                   readonly="1">
-                                <list create="0" delete="0">
-                                    <field name="repair_service"/>
-                                    <field name="product_id"/>
-                                    <field name="brand_id"/>
-                                    <field name="part_number"/>
-                                    <field name="warranty"/>
-                                    <field name="quantity"/>
-                                    <field name="product_uom_id"/>
-                                    <field name="unit_price"/>
-                                    <field name="amount"/>
-                                    <field name="selected"/>
+                                    <field name="selected"
+                                           readonly="parent.state not in ['draft', 'sent']"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
-                                <field name="selected_line_count" readonly="1"/>
-                                <field name="selected_total" readonly="1"/>
+                                <field name="total_amount" readonly="1"/>
                                 <field name="currency_id" invisible="1"/>
                             </group>
                         </page>

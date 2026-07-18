@@ -35,11 +35,77 @@
         <field name="job_id" ref="demo_job_technician"/>
     </record>
 
+    <record id="demo_part_brand_korea" model="workshop.product.brand">
+        <field name="name">Korea</field>
+        <field name="code">KOREA</field>
+    </record>
+
+    <record id="demo_part_brand_oem" model="workshop.product.brand">
+        <field name="name">OEM Genuine</field>
+        <field name="code">OEM</field>
+    </record>
+
+    <record id="demo_part_brand_thailand" model="workshop.product.brand">
+        <field name="name">Thailand</field>
+        <field name="code">TH</field>
+    </record>
+
+    <record id="demo_part_brand_shell" model="workshop.product.brand">
+        <field name="name">Shell</field>
+        <field name="code">SHELL</field>
+    </record>
+
+    <record id="demo_part_brand_castrol" model="workshop.product.brand">
+        <field name="name">Castrol</field>
+        <field name="code">CASTROL</field>
+    </record>
+
     <record id="demo_job_card_option_brake_pad" model="product.product">
-        <field name="name">Front Brake Pad Option (Demo)</field>
-        <field name="default_code">JC-BP-DEMO</field>
+        <field name="name">Brake Pad Korea</field>
+        <field name="default_code">BP-KOREA-DEMO</field>
         <field name="type">consu</field>
-        <field name="list_price">125000</field>
+        <field name="brand_id" ref="demo_part_brand_korea"/>
+        <field name="list_price">200000</field>
+    </record>
+
+    <record id="demo_product_brake_pad_oem" model="product.product">
+        <field name="name">Brake Pad OEM</field>
+        <field name="default_code">BP-OEM-DEMO</field>
+        <field name="type">consu</field>
+        <field name="brand_id" ref="demo_part_brand_oem"/>
+        <field name="list_price">250000</field>
+    </record>
+
+    <record id="demo_product_brake_pad_thailand" model="product.product">
+        <field name="name">Brake Pad Thailand</field>
+        <field name="default_code">BP-TH-DEMO</field>
+        <field name="type">consu</field>
+        <field name="brand_id" ref="demo_part_brand_thailand"/>
+        <field name="list_price">180000</field>
+    </record>
+
+    <record id="demo_product_engine_oil_oem" model="product.product">
+        <field name="name">Engine Oil 5W30 OEM</field>
+        <field name="default_code">OIL-5W30-OEM-DEMO</field>
+        <field name="type">consu</field>
+        <field name="brand_id" ref="demo_part_brand_oem"/>
+        <field name="list_price">360000</field>
+    </record>
+
+    <record id="demo_product_engine_oil_shell" model="product.product">
+        <field name="name">Engine Oil 5W30 Shell</field>
+        <field name="default_code">OIL-5W30-SHELL-DEMO</field>
+        <field name="type">consu</field>
+        <field name="brand_id" ref="demo_part_brand_shell"/>
+        <field name="list_price">380000</field>
+    </record>
+
+    <record id="demo_product_engine_oil_castrol" model="product.product">
+        <field name="name">Engine Oil 5W30 Castrol</field>
+        <field name="default_code">OIL-5W30-CASTROL-DEMO</field>
+        <field name="type">consu</field>
+        <field name="brand_id" ref="demo_part_brand_castrol"/>
+        <field name="list_price">400000</field>
     </record>
 
     <record id="demo_job_card_grand_starex" model="workshop.job.card">
@@ -51,13 +117,36 @@
         <field name="recommendation">Inspect the front braking system.</field>
     </record>
 
-    <record id="demo_job_card_option_line" model="workshop.job.card.line">
-        <field name="job_card_id" ref="demo_job_card_grand_starex"/>
-        <field name="repair_service">Front Brake Repair</field>
-        <field name="product_id" ref="demo_job_card_option_brake_pad"/>
-        <field name="quantity">1</field>
-        <field name="product_uom_id" ref="uom.product_uom_unit"/>
-        <field name="unit_price">125000</field>
-        <field name="selected" eval="True"/>
+    <record id="demo_repair_service_front_brake" model="workshop.repair.service">
+        <field name="name">Front Brake Repair</field>
+        <field name="code">BRAKE-FRONT</field>
+        <field name="sequence">10</field>
+        <field name="product_ids" eval="[
+            Command.link(ref('demo_job_card_option_brake_pad')),
+            Command.link(ref('demo_product_brake_pad_oem')),
+            Command.link(ref('demo_product_brake_pad_thailand')),
+        ]"/>
     </record>
+
+    <record id="demo_repair_service_engine_oil" model="workshop.repair.service">
+        <field name="name">Engine Oil Change</field>
+        <field name="code">OIL-CHANGE</field>
+        <field name="sequence">20</field>
+        <field name="product_ids" eval="[
+            Command.link(ref('demo_product_engine_oil_oem')),
+            Command.link(ref('demo_product_engine_oil_shell')),
+            Command.link(ref('demo_product_engine_oil_castrol')),
+        ]"/>
+    </record>
+
+    <record id="demo_job_card_service_front_brake" model="workshop.job.card.service">
+        <field name="job_card_id" ref="demo_job_card_grand_starex"/>
+        <field name="repair_service_id" ref="demo_repair_service_front_brake"/>
+    </record>
+
+    <record id="demo_job_card_service_engine_oil" model="workshop.job.card.service">
+        <field name="job_card_id" ref="demo_job_card_grand_starex"/>
+        <field name="repair_service_id" ref="demo_repair_service_engine_oil"/>
+    </record>
+
 </odoo>
