@@ -17,6 +17,7 @@ class WorkshopJobCard(models.Model):
         "complaint",
         "diagnosis",
         "recommendation",
+        "service_line_ids",
         "line_ids",
         "currency_id",
     }
@@ -108,6 +109,12 @@ class WorkshopJobCard(models.Model):
     complaint = fields.Text(string="Customer Complaint")
     diagnosis = fields.Text(string="Inspection / Diagnosis")
     recommendation = fields.Text(string="Recommendation")
+    service_line_ids = fields.One2many(
+        "workshop.job.card.service",
+        "job_card_id",
+        string="Repair Services",
+        copy=True,
+    )
     line_ids = fields.One2many(
         "workshop.job.card.line",
         "job_card_id",
@@ -121,10 +128,19 @@ class WorkshopJobCard(models.Model):
         readonly=True,
     )
     selected_line_count = fields.Integer(
-        compute="_compute_selected_summary", string="Selected Line Count"
+        compute="_compute_selected_line_count", string="Selected Line Count"
     )
     selected_total = fields.Monetary(
-        compute="_compute_selected_summary", string="Selected Total"
+        related="total_amount",
+        string="Legacy Selected Total",
+        currency_field="currency_id",
+        readonly=True,
+    )
+    total_amount = fields.Monetary(
+        string="Total",
+        compute="_compute_total_amount",
+        store=True,
+        currency_field="currency_id",
     )
     state = fields.Selection(
         [
@@ -205,12 +221,17 @@ class WorkshopJobCard(models.Model):
         for card in self:
             card.repair_order_count = 1 if card.repair_order_id else 0
 
-    @api.depends("line_ids.selected", "line_ids.amount")
-    def _compute_selected_summary(self):
+    @api.depends("line_ids.selected")
+    def _compute_selected_line_count(self):
         for card in self:
-            selected_lines = card.line_ids.filtered("selected")
-            card.selected_line_count = len(selected_lines)
-            card.selected_total = sum(selected_lines.mapped("amount"))
+            card.selected_line_count = len(card.line_ids.filtered("selected"))
+
+    @api.depends("line_ids.selected", "line_ids.amount")
+    def _compute_total_amount(self):
+        for card in self:
+            card.total_amount = sum(
+                card.line_ids.filtered("selected").mapped("amount")
+            )
 
     @api.onchange("customer_id")
     def _onchange_customer_id(self):
@@ -243,15 +264,53 @@ class WorkshopJobCard(models.Model):
     def _workflow_write(self, vals):
         return super(WorkshopJobCard, self).write(vals)
 
+    def _services_without_single_selection(self):
+        self.ensure_one()
+        return self.service_line_ids.filtered(
+            lambda service: len(service.option_line_ids.filtered("selected")) != 1
+        )
+
+    def _raise_for_incomplete_service_selections(self):
+        self.ensure_one()
+        incomplete_services = self._services_without_single_selection()
+        if not incomplete_services:
+            return
+        service_names = "\n".join(
+            "- %s" % service.repair_service_id.display_name
+            for service in incomplete_services
+        )
+        raise ValidationError(
+            _(
+                "Please select one Product Option for the following "
+                "Repair Services:\n%s"
+            )
+            % service_names
+        )
+
     def action_send_to_customer(self):
         self._ensure_state("draft")
         if not self.customer_id or not self.vehicle_id or not self.technician_id:
             raise ValidationError(
                 _("Customer, Vehicle, and Technician are required before sending.")
             )
-        if not self.line_ids:
+        if not self.service_line_ids:
             raise ValidationError(
-                _("Add at least one Repair Option before sending the Job Card.")
+                _("Add at least one Repair Service before sending the Job Card.")
+            )
+        services_without_options = self.service_line_ids.filtered(
+            lambda service: not service.option_line_ids
+        )
+        if services_without_options:
+            service_names = "\n".join(
+                "- %s" % service.repair_service_id.display_name
+                for service in services_without_options
+            )
+            raise ValidationError(
+                _(
+                    "Add at least one Product Option for the following "
+                    "Repair Services:\n%s"
+                )
+                % service_names
             )
         self._workflow_write({"state": "sent"})
         return True
@@ -262,6 +321,7 @@ class WorkshopJobCard(models.Model):
             raise ValidationError(
                 _("Select at least one Repair Option before approval.")
             )
+        self._raise_for_incomplete_service_selections()
         self._workflow_write(
             {
                 "state": "approved",
@@ -297,11 +357,14 @@ class WorkshopJobCard(models.Model):
             raise UserError(_("A Repair Order already exists for this Job Card."))
         self._ensure_state("approved")
 
-        selected_lines = self.line_ids.filtered("selected")
+        selected_lines = self.service_line_ids.mapped("option_line_ids").filtered(
+            "selected"
+        )
         if not selected_lines:
             raise ValidationError(
                 _("Select at least one Repair Option before creating a Repair Order.")
             )
+        self._raise_for_incomplete_service_selections()
 
         repair = self.env["repair.order"].create(
             {

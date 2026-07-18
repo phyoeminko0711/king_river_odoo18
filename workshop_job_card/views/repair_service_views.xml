@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_repair_service_list" model="ir.ui.view">
+        <field name="name">workshop.repair.service.list</field>
+        <field name="model">workshop.repair.service</field>
+        <field name="arch" type="xml">
+            <list string="Repair Services">
+                <field name="name" string="Repair Service"/>
+                <field name="code"/>
+                <field name="product_option_count"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_repair_service_form" model="ir.ui.view">
+        <field name="name">workshop.repair.service.form</field>
+        <field name="model">workshop.repair.service</field>
+        <field name="arch" type="xml">
+            <form string="Repair Service">
+                <sheet>
+                    <widget name="web_ribbon"
+                            title="Archived"
+                            bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="name" string="Repair Service"/>
+                            <field name="code"/>
+                        </group>
+                    </group>
+                    <group string="Product Options">
+                        <field name="product_ids"
+                               widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="description" placeholder="Optional service description..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_repair_service_search" model="ir.ui.view">
+        <field name="name">workshop.repair.service.search</field>
+        <field name="model">workshop.repair.service</field>
+        <field name="arch" type="xml">
+            <search string="Search Repair Services">
+                <field name="name" string="Repair Service"/>
+                <field name="code"/>
+                <separator/>
+                <filter name="active" string="Active"
+                        domain="[('active', '=', True)]"/>
+                <filter name="archived" string="Archived"
+                        domain="[('active', '=', False)]"
+                        context="{'active_test': False}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_repair_service" model="ir.actions.act_window">
+        <field name="name">Repair Services</field>
+        <field name="res_model">workshop.repair.service</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_repair_service_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Repair Service</p>
+            <p>Link the service directly to its available product options.</p>
+        </field>
+    </record>
+</odoo>

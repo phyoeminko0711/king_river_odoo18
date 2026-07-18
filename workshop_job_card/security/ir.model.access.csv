@@ -3,3 +3,4 @@ access_workshop_job_card_stock_user,workshop.job.card user,model_workshop_job_ca
 access_workshop_job_card_service_stock_user,workshop.job.card.service user,model_workshop_job_card_service,,1,1,1,0
 access_workshop_job_card_option_stock_user,workshop.job.card.option user,model_workshop_job_card_option,,1,1,1,0
 access_workshop_job_card_line_stock_user,workshop.job.card.line user,model_workshop_job_card_line,,1,1,1,0
+access_workshop_repair_service_system,workshop.repair.service administrator,model_workshop_repair_service,base.group_system,1,1,1,1
