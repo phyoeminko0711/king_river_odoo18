@@ -406,6 +406,18 @@ class TestWorkshopJobCard(TransactionCase):
             add_button[0].get("invisible"),
             "state not in ['draft', 'sent']",
         )
+        remove_button = form.xpath(
+            "//button[@name='action_open_remove_repair_service_wizard']"
+        )
+        self.assertEqual(len(remove_button), 1)
+        self.assertEqual(
+            remove_button[0].get("invisible"),
+            "state not in ['draft', 'sent'] or not service_line_ids",
+        )
+        self.assertEqual(
+            remove_button[0].getparent(),
+            add_button[0].getparent(),
+        )
         draft_columns = option_fields[0].xpath("./list/field/@name")
         for field_name in (
             "repair_service_id", "product_id", "brand_id", "part_number", "warranty",
@@ -652,6 +664,147 @@ class TestWorkshopJobCard(TransactionCase):
         card._workflow_write({"state": "approved"})
         with self.assertRaisesRegex(UserError, "current state"):
             card.action_open_add_repair_service_wizard()
+
+    def test_remove_repair_service_wizard_keeps_unselected_services(self):
+        card = self._create_card()
+        services = self.env["workshop.repair.service"]
+        for index, product in enumerate(self.products):
+            services |= self.env["workshop.repair.service"].create(
+                {
+                    "name": f"Remove Wizard Service {index}",
+                    "product_ids": [(6, 0, product.ids)],
+                }
+            )
+        self.env["workshop.add.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "repair_service_ids": [(6, 0, services.ids)],
+            }
+        ).action_add()
+        service_lines = card.service_line_ids
+        removed_line = service_lines.filtered(
+            lambda line: line.repair_service_id == services[0]
+        )
+        kept_lines = service_lines - removed_line
+        removed_options = removed_line.option_line_ids
+        kept_options = kept_lines.option_line_ids
+
+        action = card.action_open_remove_repair_service_wizard()
+        self.assertEqual(
+            action["res_model"], "workshop.remove.repair.service.wizard"
+        )
+        self.assertEqual(action["target"], "new")
+        self.assertEqual(action["context"]["default_job_card_id"], card.id)
+
+        result = self.env["workshop.remove.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "job_card_service_ids": [(6, 0, removed_line.ids)],
+            }
+        ).action_remove_services()
+        self.assertEqual(result, {"type": "ir.actions.client", "tag": "reload"})
+        self.assertFalse(removed_line.exists())
+        self.assertFalse(removed_options.exists())
+        self.assertEqual(card.service_line_ids, kept_lines)
+        self.assertEqual(card.line_ids, kept_options)
+        self.assertTrue(services[0].exists())
+        self.assertTrue(self.products[0].exists())
+
+    def test_remove_multiple_services_and_last_service_resets_total(self):
+        card = self._create_card()
+        services = self.env["workshop.repair.service"]
+        for index, product in enumerate(self.products):
+            services |= self.env["workshop.repair.service"].create(
+                {
+                    "name": f"Multiple Removal Service {index}",
+                    "product_ids": [(6, 0, product.ids)],
+                }
+            )
+        self.env["workshop.add.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "repair_service_ids": [(6, 0, services.ids)],
+            }
+        ).action_add()
+        card.line_ids[0].write({"selected": True})
+        card.line_ids[1].write({"selected": True})
+        self.assertGreater(card.total_amount, 0)
+        card._workflow_write({"state": "sent"})
+
+        first_two = card.service_line_ids.filtered(
+            lambda line: line.repair_service_id in services[:2]
+        )
+        self.env["workshop.remove.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "job_card_service_ids": [(6, 0, first_two.ids)],
+            }
+        ).action_remove_services()
+        self.assertEqual(card.service_line_ids.repair_service_id, services[2])
+        self.assertEqual(card.total_amount, 0)
+
+        self.env["workshop.remove.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "job_card_service_ids": [(6, 0, card.service_line_ids.ids)],
+            }
+        ).action_remove_services()
+        self.assertFalse(card.service_line_ids)
+        self.assertFalse(card.line_ids)
+        self.assertEqual(card.total_amount, 0)
+
+    def test_remove_repair_service_wizard_validates_selection_state_and_card(self):
+        card = self._create_card()
+        empty_wizard = self.env["workshop.remove.repair.service.wizard"].create(
+            {"job_card_id": card.id}
+        )
+        with self.assertRaisesRegex(
+            ValidationError,
+            "Please select at least one Repair Service to remove",
+        ):
+            empty_wizard.action_remove_services()
+
+        service = self.env["workshop.repair.service"].create(
+            {
+                "name": "Protected Removal Service",
+                "product_ids": [(6, 0, self.products[:1].ids)],
+            }
+        )
+        service_line = self.env["workshop.job.card.service"].create(
+            {"job_card_id": card.id, "repair_service_id": service.id}
+        )
+        card._workflow_write({"state": "approved"})
+        with self.assertRaisesRegex(UserError, "Draft or Sent to Customer state"):
+            card.action_open_remove_repair_service_wizard()
+        protected_wizard = self.env["workshop.remove.repair.service.wizard"].create(
+            {
+                "job_card_id": card.id,
+                "job_card_service_ids": [(6, 0, service_line.ids)],
+            }
+        )
+        with self.assertRaisesRegex(UserError, "Draft or Sent to Customer state"):
+            protected_wizard.action_remove_services()
+        self.assertTrue(service_line.exists())
+
+        other_card = self._create_card()
+        other_service = self.env["workshop.repair.service"].create(
+            {"name": "Other Card Removal Service"}
+        )
+        other_line = self.env["workshop.job.card.service"].create(
+            {"job_card_id": other_card.id, "repair_service_id": other_service.id}
+        )
+        wrong_card_wizard = self.env[
+            "workshop.remove.repair.service.wizard"
+        ].create(
+            {
+                "job_card_id": other_card.id,
+                "job_card_service_ids": [(6, 0, service_line.ids)],
+            }
+        )
+        with self.assertRaisesRegex(ValidationError, "current Job Card"):
+            wrong_card_wizard.action_remove_services()
+        self.assertTrue(service_line.exists())
+        self.assertTrue(other_line.exists())
 
     def test_complete_two_service_job_card_demo_flow(self):
         product_values = (

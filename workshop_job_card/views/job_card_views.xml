@@ -97,12 +97,20 @@
                             </group>
                         </page>
                         <page string="Repair Options" name="repair_options">
-                            <button name="action_open_add_repair_service_wizard"
-                                    type="object"
-                                    string="Add Repair Service"
-                                    class="btn-primary"
-                                    icon="fa-plus"
-                                    invisible="state not in ['draft', 'sent']"/>
+                            <div class="d-flex gap-2 mb-3">
+                                <button name="action_open_add_repair_service_wizard"
+                                        type="object"
+                                        string="Add Repair Service"
+                                        class="btn-primary"
+                                        icon="fa-plus"
+                                        invisible="state not in ['draft', 'sent']"/>
+                                <button name="action_open_remove_repair_service_wizard"
+                                        type="object"
+                                        string="Remove Repair Service"
+                                        class="btn-secondary"
+                                        icon="fa-minus"
+                                        invisible="state not in ['draft', 'sent'] or not service_line_ids"/>
+                            </div>
                             <separator string="Product Options"/>
                             <field name="line_ids" id="repair_options" nolabel="1"
                                    readonly="state not in ['draft', 'sent']">

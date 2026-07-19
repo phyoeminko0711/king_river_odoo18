@@ -94,9 +94,12 @@ class WorkshopJobCardService(models.Model):
         return result
 
     def unlink(self):
-        if any(line.job_card_id.state != "draft" for line in self):
+        if any(line.job_card_id.state not in {"draft", "sent"} for line in self):
             raise UserError(
-                _("Repair Services can only be deleted from a Draft Job Card.")
+                _(
+                    "Repair Services can only be removed while the Job Card is "
+                    "in Draft or Sent to Customer state."
+                )
             )
         return super().unlink()
 
