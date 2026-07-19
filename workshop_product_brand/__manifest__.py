@@ -1,6 +1,6 @@
 {
     "name": "Workshop Product Brand",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.3.0",
     "summary": "Reusable product brand master for workshop spare parts",
     "category": "Repair/Configuration",
     "author": "dev_pmk",

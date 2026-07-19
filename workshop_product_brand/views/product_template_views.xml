@@ -5,7 +5,14 @@
         <field name="model">product.template</field>
         <field name="inherit_id" ref="product.product_template_tree_view"/>
         <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="english_name" optional="show"/>
+            </field>
+            <field name="categ_id" position="attributes">
+                <attribute name="optional">show</attribute>
+            </field>
             <field name="default_code" position="after">
+                <field name="categ_id" position="move"/>
                 <field name="brand_id" optional="show"/>
             </field>
         </field>
@@ -16,6 +23,34 @@
         <field name="model">product.template</field>
         <field name="inherit_id" ref="product.product_template_only_form_view"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]/label[@for='name']"
+                   position="replace"/>
+            <xpath expr="//div[hasclass('oe_title')]/h1" position="replace">
+                <h1>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label for="name" string="Myanmar Name"/>
+                            <div class="d-flex">
+                                <field name="is_favorite"
+                                       widget="boolean_favorite"
+                                       class="me-3"
+                                       nolabel="1"/>
+                                <field name="name"
+                                       class="text-break"
+                                       options="{'line_breaks': False}"
+                                       widget="text"
+                                       placeholder="မြန်မာအမည်ရေးပါ..."/>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label for="english_name" string="English Name"/>
+                            <field name="english_name"
+                                   class="text-break"
+                                   placeholder="Enter English Name..."/>
+                        </div>
+                    </div>
+                </h1>
+            </xpath>
             <field name="default_code" position="after">
                 <field name="brand_id"/>
             </field>
@@ -60,6 +95,9 @@
         <field name="model">product.template</field>
         <field name="inherit_id" ref="product.product_template_search_view"/>
         <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="english_name" string="English Name"/>
+            </field>
             <field name="categ_id" position="after">
                 <field name="brand_id"/>
             </field>

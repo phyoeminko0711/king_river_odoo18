@@ -10,7 +10,14 @@ Simple reusable spare-part Brand Master for Odoo 18 Community.
 - One shared Brand for every variant of the same product template
 - Brand columns on Product and Product Variant lists and forms
 - Product search and Group By Brand
+- Optional indexed English Name beside the standard Myanmar Product Name
 - Part Brands menu under Repairs > Configuration
+
+The standard `product.template.name` remains the Product display name and is
+labelled Myanmar Name in the Product title. `english_name` is optional,
+copyable through standard Odoo behavior, visible in the Product list, and
+available as a separate Product search field. Existing products do not require
+backfilling.
 
 Existing products without a Brand continue to work. During upgrade, a legacy
 variant Brand is copied to its template. If old variants of one template have

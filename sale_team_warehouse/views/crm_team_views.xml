@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="crm_team_view_form_inherit_warehouse" model="ir.ui.view">
+        <field name="name">crm.team.form.inherit.warehouse</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='left']/field[@name='user_id']" position="after">
+                <field name="warehouse_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_view_tree_inherit_warehouse" model="ir.ui.view">
+        <field name="name">crm.team.list.inherit.warehouse</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="warehouse_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_view_search_inherit_warehouse" model="ir.ui.view">
+        <field name="name">crm.team.search.inherit.warehouse</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="warehouse_id"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="Warehouse" name="group_by_warehouse" context="{'group_by': 'warehouse_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
