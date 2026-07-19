@@ -31,6 +31,11 @@ Product Option rows, which remain visible in one flat table. Draft users may
 edit warranty, quantity, UoM, and price, option selection remains open in Draft
 and Sent, and the footer shows only the selected-option Total.
 
+A Remove Repair Service modal sits beside the Add button in Draft and Sent.
+It removes only the selected Job Card service rows and their cascaded Product
+Option lines. Repair Service masters and Products remain untouched, and the
+selected-option Total is refreshed before the Job Card form reloads.
+
 `total_amount` is the stored Job Card Total used by the form and list views. It
 sums only selected Product Options; unselected generated alternatives never
 contribute. The former `selected_total` and selected-line count remain as hidden

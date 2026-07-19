@@ -275,6 +275,24 @@ class WorkshopJobCard(models.Model):
         }
         return action
 
+    def action_open_remove_repair_service_wizard(self):
+        self.ensure_one()
+        if self.state not in {"draft", "sent"}:
+            raise UserError(
+                _(
+                    "Repair Services can only be removed while the Job Card is "
+                    "in Draft or Sent to Customer state."
+                )
+            )
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "workshop_job_card.action_remove_repair_service_wizard"
+        )
+        action["context"] = {
+            **self.env.context,
+            "default_job_card_id": self.id,
+        }
+        return action
+
     def _services_without_single_selection(self):
         self.ensure_one()
         return self.service_line_ids.filtered(
