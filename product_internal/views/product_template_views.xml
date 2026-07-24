@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_view_internal" model="ir.ui.view">
+        <field name="name">product.template.form.internal</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//label[@for='name']" position="attributes">
+                <attribute name="string">Myanmar Name</attribute>
+            </xpath>
+            <xpath expr="//div[@class='oe_title']/h1/div" position="replace">
+                <div class="d-flex align-items-start gap-3 w-100">
+                    <field name="is_favorite" widget="boolean_favorite" class="me-1" nolabel="1"/>
+                    <div class="flex-grow-1">
+                        <field class="text-break" name="name" options="{'line_breaks': False}" widget="text" placeholder="e.g. Cheese Burger"/>
+                    </div>
+                    <div class="flex-grow-1">
+                        <field name="english_name" placeholder="e.g. Front Bumper"/>
+                    </div>
+                </div>
+            </xpath>
+            <xpath expr="//group[@name='group_standard_price']/field[@name='default_code']" position="after">
+                <field name="car_name"/>
+                <field name="lh_rh"/>
+                <field name="model_engine"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_tree_view_internal" model="ir.ui.view">
+        <field name="name">product.template.list.internal</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="english_name" optional="hide"/>
+                <field name="car_name" optional="hide"/>
+                <field name="lh_rh" optional="hide"/>
+                <field name="model_engine" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_search_view_internal" model="ir.ui.view">
+        <field name="name">product.template.search.internal</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="english_name"/>
+                <field name="car_name"/>
+                <field name="lh_rh"/>
+                <field name="model_engine"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

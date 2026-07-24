@@ -57,6 +57,7 @@ class SalePriceUpdate(models.Model):
             ("cancelled", "Cancelled"),
             ("superseded", "Superseded"),
         ],
+        string="Status",
         default="pending",
         required=True,
         tracking=True,
