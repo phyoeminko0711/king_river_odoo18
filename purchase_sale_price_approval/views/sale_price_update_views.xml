@@ -20,7 +20,8 @@
                     <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
                     <filter name="group_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
                     <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
-                    <filter name="group_effective_month" string="Effective Month" context="{'group_by': 'effective_date:month'}"/>
+                    <filter name="group_effective_month" string="Effective Month"
+                            context="{'group_by': 'effective_date:month'}"/>
                 </group>
             </search>
         </field>
@@ -30,7 +31,7 @@
         <field name="name">sale.price.update.list</field>
         <field name="model">sale.price.update</field>
         <field name="arch" type="xml">
-            <list decoration-warning="state == 'pending'" decoration-success="state == 'approved'" decoration-danger="state == 'rejected'" decoration-muted="state == 'cancelled'" decoration-info="state == 'superseded'">
+            <list>
                 <field name="name" string="Reference"/>
                 <field name="purchase_order_id" string="Purchase Order"/>
                 <field name="vendor_id" string="Vendor"/>
@@ -40,11 +41,16 @@
                 <field name="calculated_sale_price" string="Proposed Sale Price"/>
                 <field name="approved_sale_price" string="Approved Sale Price"/>
                 <field name="effective_date" string="Effective Date"/>
-                <field name="state" widget="badge"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'" decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'" decoration-muted="state == 'cancelled'"
+                       decoration-info="state == 'superseded'"/>
                 <field name="currency_id" column_invisible="True"/>
                 <header>
-                    <button name="%(action_open_batch_sale_price_approval_approve)d" string="Approve Selected" type="action" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                    <button name="%(action_open_batch_sale_price_approval_reject)d" string="Reject Selected" type="action" groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="%(action_open_batch_sale_price_approval_approve)d" string="Approve Selected"
+                            type="action" groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="%(action_open_batch_sale_price_approval_reject)d" string="Reject Selected"
+                            type="action" groups="purchase_sale_price_approval.group_sale_price_manager"/>
                 </header>
             </list>
         </field>
@@ -56,11 +62,18 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'pending'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                    <button name="action_cancel" type="object" string="Cancel" invisible="state != 'pending'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                    <button name="action_reset_to_pending" type="object" string="Reset to Pending" invisible="state not in ('rejected', 'cancelled')" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                    <field name="state" widget="statusbar" statusbar_visible="pending,approved,rejected,cancelled,superseded"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary"
+                            invisible="state != 'pending'"
+                            groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending'"
+                            groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="action_cancel" type="object" string="Cancel" invisible="state != 'pending'"
+                            groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <button name="action_reset_to_pending" type="object" string="Reset to Pending"
+                            invisible="state not in ('rejected', 'cancelled')"
+                            groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,approved,rejected,cancelled,superseded"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -77,32 +90,42 @@
                             <field name="purchase_uom_id" string="Unit of Measure" readonly="1"/>
                             <field name="purchase_price" string="Purchase Price" readonly="1"/>
                             <field name="effective_date" string="Effective Date" readonly="1"/>
-                            <field name="source_currency_id" readonly="1" invisible="source_currency_id == currency_id"/>
-                            <field name="converted_purchase_price" readonly="1" invisible="source_currency_id == currency_id"/>
+                            <field name="source_currency_id" readonly="1"
+                                   invisible="source_currency_id == currency_id"/>
+                            <field name="converted_purchase_price" readonly="1"
+                                   invisible="source_currency_id == currency_id"/>
                         </group>
                         <group string="Price Calculation">
                             <field name="old_sale_price" string="Previous Sale Price" readonly="1"/>
                             <field name="markup_type" string="Markup Type" readonly="1"/>
                             <field name="markup_value" string="Markup" readonly="1"/>
                             <field name="calculated_sale_price" string="Proposed Sale Price" readonly="1"/>
-                            <field name="approved_sale_price" string="Approved Sale Price" readonly="state != 'pending'" groups="purchase_sale_price_approval.group_sale_price_manager"/>
-                            <field name="approved_sale_price" string="Approved Sale Price" readonly="1" groups="!purchase_sale_price_approval.group_sale_price_manager"/>
+                            <field name="approved_sale_price" string="Approved Sale Price" readonly="state != 'pending'"
+                                   groups="purchase_sale_price_approval.group_sale_price_manager"/>
+                            <field name="approved_sale_price" string="Approved Sale Price" readonly="1"
+                                   groups="!purchase_sale_price_approval.group_sale_price_manager"/>
                             <field name="current_product_sale_price" string="Current Sale Price" readonly="1"/>
                         </group>
                     </group>
                     <group>
                         <group string="Approval Information">
                             <field name="approved_by" string="Approved By" invisible="not approved_by" readonly="1"/>
-                            <field name="approved_date" string="Approved Date" invisible="not approved_date" readonly="1"/>
+                            <field name="approved_date" string="Approved Date" invisible="not approved_date"
+                                   readonly="1"/>
                             <field name="rejected_by" string="Rejected By" invisible="not rejected_by" readonly="1"/>
-                            <field name="rejected_date" string="Rejected Date" invisible="not rejected_date" readonly="1"/>
-                            <field name="rejection_reason" readonly="state != 'pending'" invisible="not rejection_reason and state != 'pending'"/>
+                            <field name="rejected_date" string="Rejected Date" invisible="not rejected_date"
+                                   readonly="1"/>
+                            <field name="rejection_reason" readonly="state != 'pending'"
+                                   invisible="not rejection_reason and state != 'pending'"/>
                         </group>
                         <group string="Additional Information">
-                            <field name="previous_update_id" string="Previous Price Update" readonly="1" invisible="not previous_update_id"/>
-                            <field name="superseded_by_id" string="Superseded By" readonly="1" invisible="not superseded_by_id"/>
+                            <field name="previous_update_id" string="Previous Price Update" readonly="1"
+                                   invisible="not previous_update_id"/>
+                            <field name="superseded_by_id" string="Superseded By" readonly="1"
+                                   invisible="not superseded_by_id"/>
                             <field name="note" readonly="state != 'pending'"/>
-                            <field name="purchase_order_line_id" string="Purchase Order Line" readonly="1" invisible="1"/>
+                            <field name="purchase_order_line_id" string="Purchase Order Line" readonly="1"
+                                   invisible="1"/>
                             <field name="rule_line_id" readonly="1" invisible="1"/>
                             <field name="product_tmpl_id" readonly="1" invisible="1"/>
                             <field name="product_category_id" readonly="1" invisible="1"/>
