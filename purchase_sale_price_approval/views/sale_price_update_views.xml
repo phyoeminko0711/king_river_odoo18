@@ -7,6 +7,7 @@
             <search>
                 <field name="name" string="Reference"/>
                 <field name="purchase_order_id" string="Purchase Order"/>
+                <field name="landed_cost_id" string="Landed Cost"/>
                 <field name="vendor_id" string="Vendor"/>
                 <field name="product_id" string="Product"/>
                 <field name="approved_by" string="Approved By"/>
@@ -18,6 +19,7 @@
                 <filter name="approval_date" string="Approval Date" date="approved_date"/>
                 <group expand="0" string="Group By">
                     <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_landed_cost" string="Landed Cost" context="{'group_by': 'landed_cost_id'}"/>
                     <filter name="group_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
                     <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
                     <filter name="group_effective_month" string="Effective Month"
@@ -33,10 +35,12 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name" string="Reference"/>
-                <field name="purchase_order_id" string="Purchase Order"/>
+                <field name="landed_cost_id" string="Landed Cost"/>
+                <field name="purchase_order_id" string="Purchase Order" optional="hide"/>
                 <field name="vendor_id" string="Vendor"/>
                 <field name="product_id" string="Product"/>
-                <field name="purchase_price" string="Purchase Price"/>
+                <field name="landed_unit_cost" string="Landed Unit Cost"/>
+                <field name="purchase_price" string="Purchase Price" optional="hide"/>
                 <field name="old_sale_price" string="Previous Sale Price"/>
                 <field name="calculated_sale_price" string="Proposed Sale Price"/>
                 <field name="approved_sale_price" string="Approved Sale Price"/>
@@ -81,14 +85,21 @@
                             <field name="name" string="Reference" readonly="1"/>
                         </h1>
                     </div>
+                    <field name="cost_source" invisible="1"/>
                     <group>
                         <group string="Purchase Information">
-                            <field name="purchase_order_id" string="Purchase Order" readonly="1"/>
+                            <field name="landed_cost_id" string="Landed Cost" readonly="1"
+                                   invisible="cost_source != 'landed_cost'"/>
+                            <field name="purchase_order_id" string="Purchase Order" readonly="1"
+                                   invisible="not purchase_order_id"/>
                             <field name="vendor_id" string="Vendor" readonly="1"/>
                             <field name="product_id" string="Product" readonly="1"/>
                             <field name="purchase_quantity" string="Quantity" readonly="1"/>
                             <field name="purchase_uom_id" string="Unit of Measure" readonly="1"/>
-                            <field name="purchase_price" string="Purchase Price" readonly="1"/>
+                            <field name="landed_unit_cost" string="Landed Unit Cost" readonly="1"
+                                   invisible="cost_source != 'landed_cost'"/>
+                            <field name="purchase_price" string="Purchase Price" readonly="1"
+                                   invisible="cost_source == 'landed_cost'"/>
                             <field name="effective_date" string="Effective Date" readonly="1"/>
                             <field name="source_currency_id" readonly="1"
                                    invisible="source_currency_id == currency_id"/>
@@ -126,6 +137,7 @@
                             <field name="note" readonly="state != 'pending'"/>
                             <field name="purchase_order_line_id" string="Purchase Order Line" readonly="1"
                                    invisible="1"/>
+                            <field name="valuation_adjustment_line_ids" readonly="1" invisible="1"/>
                             <field name="rule_line_id" readonly="1" invisible="1"/>
                             <field name="product_tmpl_id" readonly="1" invisible="1"/>
                             <field name="product_category_id" readonly="1" invisible="1"/>

@@ -2,15 +2,15 @@
 
 ## Overview
 
-`purchase_sale_price_approval` is a custom Odoo 18 Community addon that introduces a controlled approval workflow for product sale price changes derived from confirmed Purchase Orders.
+`purchase_sale_price_approval` is a custom Odoo 18 Community addon that introduces a controlled approval workflow for product sale price changes derived from validated Stock Landed Costs.
 
-When a Purchase Order is confirmed, the module evaluates each eligible purchase line against configurable sale price rules. Instead of updating `product.template.list_price` immediately, it creates a `Sale Price Update` record in **Pending** status. A manager reviews the proposed price and decides whether to approve or reject it.
+When a Landed Cost is validated, the module evaluates each affected product against configurable sale price rules using the final landed unit cost. Instead of updating `product.template.list_price` immediately, it creates a `Sale Price Update` record in **Pending** status only when the proposed sale price is greater than the current product sale price. A manager reviews the proposed price and decides whether to approve or reject it.
 
 Only approved updates modify the product sales price.
 
 ## Business Problem
 
-Organizations often want purchase-driven pricing logic without allowing every Purchase Order confirmation to change live product sale prices. Direct automatic updates create operational risk:
+Organizations often want cost-driven pricing logic without allowing inventory costing operations to change live product sale prices without review. Direct automatic updates create operational risk:
 
 - price changes can happen without review
 - product-specific margin rules can be bypassed
@@ -40,7 +40,7 @@ This module solves that by separating:
 - Amount range validation
 - Date validity validation
 - Overlapping rule prevention
-- Purchase Order confirmation hook
+- Landed Cost validation hook
 - Pending `Sale Price Update` workflow
 - Manager approval and rejection flow
 - Batch approval and rejection wizard
@@ -48,8 +48,8 @@ This module solves that by separating:
 - Chatter logging and review activities
 - Multi-company filtering
 - Currency conversion support
-- Purchase settings for module behavior
 - Smart button on Purchase Orders
+- Smart button on Landed Costs
 
 ## Installation
 
@@ -114,24 +114,24 @@ Within the same scope, the module chooses:
 3. Latest valid-from date
 4. Highest record ID as a deterministic fallback
 
-## Purchase Confirmation Workflow
+## Landed Cost Validation Workflow
 
-When a Purchase Order is confirmed:
+When a Stock Landed Cost is validated:
 
-1. Odoo confirms the Purchase Order first.
-2. The module checks whether sale price approval is enabled.
-3. Each eligible order line is evaluated.
-4. The module uses `purchase.order.line.price_unit` as the source purchase amount.
-5. The best matching pricing rule is selected.
-6. A proposed selling price is calculated.
-7. A `Sale Price Update` record is created in **Pending** state.
-8. The Purchase Order chatter receives a note.
-9. Review activities are scheduled for designated approvers.
+1. Odoo validates the Landed Cost first.
+2. Validated valuation adjustment lines are grouped by product.
+3. The module calculates weighted landed unit cost from original inventory value plus allocated landed costs.
+4. The best matching pricing rule is selected.
+5. A proposed selling price is calculated.
+6. A `Sale Price Update` record is created in **Pending** state only when the proposed price is higher than the current sale price.
+7. The Landed Cost chatter receives a note.
+8. Review activities are scheduled for Sale Price Managers.
 
 Important:
 
-- the module does **not** use line subtotal
-- the module does **not** update `product.template.list_price` at confirmation time
+- Purchase Order confirmation does **not** create Sale Price Updates
+- the module does **not** use `purchase.order.line.price_unit` as the cost basis for new updates
+- the module does **not** update `product.template.list_price` at Landed Cost validation time
 
 ## Approval Workflow
 
@@ -171,29 +171,30 @@ The module:
 
 ## Calculation Logic
 
-Source purchase amount:
+Source cost amount:
 
-- `purchase.order.line.price_unit`
+- weighted landed unit cost from `stock.valuation.adjustment.lines`
+- original inventory value and allocated landed costs are included
 
 Calculation formulas:
 
 ### Percentage
 
 ```text
-new_sale_price = purchase_price + (purchase_price * markup_value / 100)
+new_sale_price = landed_unit_cost + (landed_unit_cost * markup_value / 100)
 ```
 
 ### Fixed Amount
 
 ```text
-new_sale_price = purchase_price + markup_value
+new_sale_price = landed_unit_cost + markup_value
 ```
 
 If a rounding value is configured, the calculated result is rounded to the nearest configured value before currency rounding is applied.
 
 ## Example
 
-Purchase Unit Price:
+Landed Unit Cost:
 `1,500,000 MMK`
 
 Rule:
@@ -207,7 +208,7 @@ Calculated Sale Price:
 
 Workflow:
 
-`Purchase Order Confirm -> Pending Sale Price Update -> Manager Review -> Approve -> Product Sales Price Updated`
+`Landed Cost Validate -> Pending Sale Price Update -> Manager Review -> Approve -> Product Sales Price Updated`
 
 ## User Roles
 
@@ -236,13 +237,13 @@ Workflow:
 - rules, updates, and history records are company-specific
 - users only see records for their allowed companies
 - product sale prices are read and written with `with_company(company_id)`
-- Purchase Orders only generate updates in their own company context
+- Landed Costs only generate updates in their own company context
 
 ## Currency Behavior
 
-- Purchase Orders can use a different currency from the rule currency
-- the module converts `price_unit` using `res.currency._convert()`
-- both source and converted purchase prices are stored
+- Landed Costs use the company currency for valuation data
+- the module converts landed unit cost using `res.currency._convert()` when rule currency differs
+- both source and converted landed costs are stored
 - range matching uses the rule currency
 
 ## Purchase Order Cancellation Behavior
@@ -254,10 +255,7 @@ When a Purchase Order is cancelled:
 - product sales price is not reverted automatically
 - chatter notes are posted for audit clarity
 
-When a cancelled Purchase Order is reset and confirmed again:
-
-- the module avoids duplicate update creation
-- changed pricing scenarios create new pending records linked to earlier updates
+Purchase Order confirmation and done actions do not create new Sale Price Updates. Existing historical Purchase Order based records remain valid for audit compatibility.
 
 ## Known Limitations
 
@@ -291,12 +289,13 @@ Main models:
 
 Main hooks:
 
-- `purchase.order.button_confirm()`
+- `stock.landed.cost.button_validate()`
 - `purchase.order.button_cancel()`
 
 Main outcome:
 
-- Purchase Order confirmation never directly changes product sales price
+- Purchase Order confirmation never creates Sale Price Updates
+- Landed Cost validation creates Sale Price Updates only for price increases
 - Manager approval is required before `product.template.list_price` is updated
 
 ## License
