@@ -75,6 +75,24 @@ class TestWorkshopJobCard(TransactionCase):
         vals.update(values)
         return self.env["workshop.job.card"].create(vals)
 
+    def _complete_inspection_action(self, action):
+        wizard = self.env[action["res_model"]].browse(action["res_id"])
+        while wizard.current_line_id:
+            wizard.action_answer_yes()
+        return wizard.job_card_id._get_latest_inspection(wizard.inspection_type)
+
+    def _wizard_from_action(self, action):
+        return self.env[action["res_model"]].browse(action["res_id"])
+
+    def _complete_pre_customer_inspections(self, card):
+        customer_check = card._get_latest_inspection("customer_check")
+        if not customer_check or customer_check.state != "completed":
+            customer_check = self._complete_inspection_action(card.action_customer_check())
+        technician_inspection = card._get_latest_inspection("technician_inspection")
+        if not technician_inspection or technician_inspection.state != "completed":
+            technician_inspection = self._complete_inspection_action(card.action_technician_inspection())
+        return customer_check, technician_inspection
+
     def _add_line(
         self,
         card,
@@ -224,8 +242,10 @@ class TestWorkshopJobCard(TransactionCase):
     def test_send_approve_and_backend_protection(self):
         card = self._create_card()
         with self.assertRaisesRegex(ValidationError, "at least one Repair Service"):
+            self._complete_pre_customer_inspections(card)
             card.action_send_to_customer()
         line = self._add_line(card)
+        self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
         with self.assertRaisesRegex(ValidationError, "Select at least one"):
             card.action_approve()
@@ -250,6 +270,7 @@ class TestWorkshopJobCard(TransactionCase):
             ValidationError,
             "(?s)Product Option.*Empty Brake Inspection",
         ):
+            self._complete_pre_customer_inspections(card)
             card.action_send_to_customer()
 
     def test_approve_requires_one_selection_for_each_service(self):
@@ -270,6 +291,7 @@ class TestWorkshopJobCard(TransactionCase):
             product=self.products[2],
             service="Engine Oil Change Approval",
         )
+        self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
 
         with self.assertRaises(ValidationError) as error:
@@ -288,6 +310,7 @@ class TestWorkshopJobCard(TransactionCase):
     def test_reject_cancel_and_reset(self):
         rejected = self._create_card()
         self._add_line(rejected)
+        self._complete_pre_customer_inspections(rejected)
         rejected.action_send_to_customer()
         rejected.action_reject()
         rejected.action_reset_to_draft()
@@ -302,6 +325,7 @@ class TestWorkshopJobCard(TransactionCase):
         card = self._create_card()
         selected = self._add_line(card, product=self.products[0], selected=True)
         unselected = self._add_line(card, product=self.products[1])
+        self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
         card.action_approve()
         action = card.action_create_repair_order()
@@ -320,6 +344,145 @@ class TestWorkshopJobCard(TransactionCase):
         self.assertEqual(action["res_id"], repair.id)
         with self.assertRaisesRegex(UserError, "already exists"):
             card.action_create_repair_order()
+
+    def test_inspections_are_created_only_from_workflow_buttons(self):
+        card = self._create_card()
+        template = self.env.ref("workshop_job_card.inspection_template_customer_check")
+
+        with self.assertRaisesRegex(UserError, "Inspection history can only be created"):
+            self.env["workshop.job.card.inspection"].create(
+                {
+                    "job_card_id": card.id,
+                    "inspection_type": "customer_check",
+                    "template_id": template.id,
+                    "creation_source": "job_card_button",
+                }
+            )
+
+        action = card.action_customer_check()
+        self.assertEqual(action["res_model"], "workshop.inspection.check.wizard")
+        self.assertFalse(card.inspection_ids)
+        inspection = self._complete_inspection_action(action)
+        self.assertEqual(inspection.creation_source, "job_card_button")
+        self.assertEqual(inspection.inspection_type, "customer_check")
+        self.assertTrue(inspection.line_ids)
+
+    def test_inspection_buttons_do_not_create_duplicates(self):
+        card = self._create_card()
+        first_action = card.action_customer_check()
+        second_action = card.action_customer_check()
+        self.assertEqual(first_action["res_model"], second_action["res_model"])
+        self.assertEqual(
+            len(card.inspection_ids.filtered(lambda inspection: inspection.inspection_type == "customer_check")),
+            0,
+        )
+
+        customer_check = self._complete_inspection_action(first_action)
+        self.assertTrue(card.customer_check_completed)
+
+        technician_first = card.action_technician_inspection()
+        technician_second = card.action_technician_inspection()
+        self.assertEqual(technician_first["res_model"], technician_second["res_model"])
+
+    def test_single_checkpoint_wizard_yes_no_navigation(self):
+        card = self._create_card()
+        wizard = self._wizard_from_action(card.action_customer_check())
+        first_line = wizard.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
+        second_line = wizard.line_ids.sorted(lambda line: (line.sequence, line.id))[1]
+
+        self.assertEqual(wizard.current_line_id, first_line)
+        self.assertEqual(wizard.progress_text, "Checkpoint 1 of %s" % len(wizard.line_ids))
+        self.assertFalse(card.inspection_ids)
+
+        wizard.action_answer_yes()
+        self.assertEqual(first_line.result, "yes")
+        self.assertEqual(wizard.current_line_id, second_line)
+
+        wizard.current_remark = "Glass cracked"
+        wizard.action_answer_no()
+        self.assertEqual(second_line.result, "no")
+        self.assertEqual(second_line.remark, "Glass cracked")
+
+        wizard.action_previous_checkpoint()
+        self.assertEqual(wizard.current_line_id, second_line)
+        self.assertEqual(second_line.result, "no")
+
+    def test_single_checkpoint_no_requires_remark_when_configured(self):
+        card = self._create_card()
+        wizard = self._wizard_from_action(card.action_customer_check())
+        required_line = wizard.line_ids.filtered("remark_required_when_no")[:1]
+        wizard.current_line_id = required_line.id
+        wizard.current_remark = required_line.remark or False
+
+        with self.assertRaisesRegex(ValidationError, "Please enter a remark before marking this checkpoint as No"):
+            wizard.action_answer_no()
+
+        wizard.current_remark = "Customer items in vehicle"
+        wizard.action_answer_no()
+        self.assertEqual(required_line.result, "no")
+
+    def test_history_is_created_on_final_answer_only(self):
+        card = self._create_card()
+        wizard = self._wizard_from_action(card.action_customer_check())
+
+        self.assertFalse(card.inspection_ids)
+
+        total = len(wizard.line_ids)
+        while wizard.current_line_id and not card.inspection_ids:
+            wizard.action_answer_yes()
+
+        inspection = card._get_latest_inspection("customer_check")
+        self.assertEqual(inspection.state, "completed")
+        self.assertEqual(len(inspection.line_ids), total)
+        self.assertTrue(card.customer_check_completed)
+
+    def test_template_change_does_not_change_completed_history(self):
+        card = self._create_card()
+        wizard = self._wizard_from_action(card.action_customer_check())
+        original_name = wizard.current_checkpoint_name
+        while wizard.current_line_id:
+            wizard.action_answer_yes()
+        inspection = card._get_latest_inspection("customer_check")
+        first_history_line = inspection.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
+
+        template_line = inspection.template_id.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
+        template_line.description = "Changed Template Checkpoint"
+
+        self.assertEqual(first_history_line.checkpoint_name, original_name)
+
+    def test_send_to_customer_requires_inspections(self):
+        card = self._create_card()
+        self._add_line(card, selected=True)
+
+        with self.assertRaisesRegex(ValidationError, "Customer Check and Technician Inspection"):
+            card.action_send_to_customer()
+
+        self._complete_inspection_action(card.action_customer_check())
+        with self.assertRaisesRegex(ValidationError, "Technician Inspection"):
+            card.action_send_to_customer()
+
+        self._complete_inspection_action(card.action_technician_inspection())
+        card.action_send_to_customer()
+        self.assertEqual(card.state, "sent")
+
+    def test_delivery_inspection_blocks_repair_done_and_no_duplicates(self):
+        card = self._create_card()
+        self._add_line(card, selected=True)
+        self._complete_pre_customer_inspections(card)
+        card.action_send_to_customer()
+        card.action_approve()
+        card.action_create_repair_order()
+        repair = card.repair_order_id
+
+        with self.assertRaisesRegex(ValidationError, "Complete the Delivery Check before finishing"):
+            repair.action_repair_done()
+
+        first_action = repair.action_delivery_inspection()
+        second_action = repair.action_delivery_inspection()
+        self.assertEqual(first_action["res_model"], second_action["res_model"])
+
+        delivery = self._complete_inspection_action(first_action)
+        self.assertTrue(repair.delivery_inspection_completed)
 
     def test_repair_order_receives_one_selected_product_per_service(self):
         card = self._create_card()
@@ -342,6 +505,7 @@ class TestWorkshopJobCard(TransactionCase):
             service="Repair Transfer Oil Service",
             quantity=3,
         )
+        self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
         card.action_approve()
         card.action_create_repair_order()
@@ -450,7 +614,15 @@ class TestWorkshopJobCard(TransactionCase):
         selection = dict(self.env["workshop.job.card"]._fields["state"].selection)
         self.assertEqual(
             set(selection),
-            {"draft", "sent", "approved", "repair_created", "rejected", "cancelled"},
+            {
+                "draft",
+                "sent",
+                "approved",
+                "repair_created",
+                "repair_completed",
+                "rejected",
+                "cancelled",
+            },
         )
         self.assertFalse({"inspection", "prepared"}.intersection(selection))
 
@@ -890,6 +1062,7 @@ class TestWorkshopJobCard(TransactionCase):
                     {"job_card_id": card.id, "repair_service_id": brake_service.id}
                 )
 
+        self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
         card.action_approve()
         card.action_create_repair_order()
@@ -909,3 +1082,4 @@ class TestWorkshopJobCard(TransactionCase):
             self.env["workshop.job.card"]._fields["total_amount"].string,
             "Total",
         )
+

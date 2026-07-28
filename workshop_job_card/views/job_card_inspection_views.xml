@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workshop_job_card_inspection_list" model="ir.ui.view">
+        <field name="name">workshop.job.card.inspection.list</field>
+        <field name="model">workshop.job.card.inspection</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" duplicate="0"
+                  decoration-success="state == 'completed'"
+                  decoration-muted="state == 'cancelled'"
+                  decoration-warning="state in ['draft', 'in_progress']">
+                <field name="job_card_id"/>
+                <field name="repair_order_id"/>
+                <field name="inspection_type"/>
+                <field name="template_id"/>
+                <field name="inspector_id"/>
+                <field name="inspection_date"/>
+                <field name="completed_date"/>
+                <field name="completed_by"/>
+                <field name="creation_source"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_workshop_job_card_inspection_form" model="ir.ui.view">
+        <field name="name">workshop.job.card.inspection.form</field>
+        <field name="model">workshop.job.card.inspection</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0" duplicate="0">
+                <header>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="completed,cancelled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="job_card_id" readonly="1"/>
+                            <field name="repair_order_id" readonly="1" invisible="not repair_order_id"/>
+                            <field name="inspection_type" readonly="1"/>
+                            <field name="template_id" readonly="1"/>
+                            <field name="creation_source" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="inspector_id" readonly="1"/>
+                            <field name="inspection_date" readonly="1"/>
+                            <field name="completed_date" readonly="1"/>
+                            <field name="completed_by" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Checklist">
+                            <field name="line_ids" readonly="1">
+                                <list create="0" edit="0" delete="0"
+                                      decoration-success="result == 'yes'"
+                                      decoration-danger="result == 'no'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="checkpoint_name" string="Checkpoint"/>
+                                    <field name="result" widget="badge"/>
+                                    <field name="remark"/>
+                                    <field name="required" column_invisible="True"/>
+                                    <field name="remark_required" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="General Remark">
+                            <field name="general_remark" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_workshop_job_card_inspection_search" model="ir.ui.view">
+        <field name="name">workshop.job.card.inspection.search</field>
+        <field name="model">workshop.job.card.inspection</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="job_card_id"/>
+                <field name="inspection_type"/>
+                <field name="inspector_id"/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="in_progress" string="In Progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter name="completed" string="Completed" domain="[('state', '=', 'completed')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_job_card" string="Job Card" context="{'group_by': 'job_card_id'}"/>
+                    <filter name="group_type" string="Inspection Type" context="{'group_by': 'inspection_type'}"/>
+                    <filter name="group_inspector" string="Inspector" context="{'group_by': 'inspector_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_workshop_job_card_inspection" model="ir.actions.act_window">
+        <field name="name">Inspections</field>
+        <field name="res_model">workshop.job.card.inspection</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_workshop_job_card_inspection_search"/>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+</odoo>

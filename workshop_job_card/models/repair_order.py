@@ -1,4 +1,5 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class RepairOrder(models.Model):
@@ -29,6 +30,16 @@ class RepairOrder(models.Model):
         store=True,
         readonly=True,
     )
+    delivery_inspection_id = fields.Many2one(
+        "workshop.job.card.inspection",
+        compute="_compute_delivery_inspection_id",
+        string="Delivery Inspection",
+    )
+    delivery_inspection_state = fields.Selection(
+        related="delivery_inspection_id.state",
+        string="Delivery Inspection Status",
+    )
+    delivery_inspection_completed = fields.Boolean(compute="_compute_delivery_inspection_id")
 
     _sql_constraints = [
         (
@@ -49,6 +60,52 @@ class RepairOrder(models.Model):
             "view_mode": "form",
             "res_id": self.job_card_id.id,
         }
+
+    @api.depends("job_card_id.inspection_ids.state", "job_card_id.inspection_ids.inspection_type")
+    def _compute_delivery_inspection_id(self):
+        for repair in self:
+            inspection = repair.job_card_id._get_latest_inspection("delivery_inspection") if repair.job_card_id else False
+            repair.delivery_inspection_id = inspection
+            repair.delivery_inspection_completed = bool(
+                repair.job_card_id and repair.job_card_id._has_completed_inspection("delivery_inspection")
+            )
+
+    def action_delivery_inspection(self):
+        self.ensure_one()
+        if not self.job_card_id:
+            raise ValidationError(_("This Repair Order is not linked to a Job Card."))
+        if self.delivery_inspection_completed:
+            return self.action_view_delivery_inspections()
+        return self.job_card_id._open_or_create_inspection(
+            "delivery_inspection",
+            repair_order=self,
+        )
+
+    def action_view_delivery_inspections(self):
+        self.ensure_one()
+        if not self.job_card_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Delivery Inspections"),
+            "res_model": "workshop.job.card.inspection",
+            "view_mode": "list,form",
+            "domain": [
+                ("job_card_id", "=", self.job_card_id.id),
+                ("inspection_type", "=", "delivery_inspection"),
+            ],
+            "context": {"create": False, "delete": False},
+        }
+
+    def action_repair_done(self):
+        for repair in self:
+            if repair.job_card_id and not repair.job_card_id._has_completed_inspection("delivery_inspection"):
+                raise ValidationError(_("Complete the Delivery Check before finishing the Repair Order."))
+        result = super().action_repair_done()
+        for repair in self.filtered("job_card_id"):
+            repair.job_card_id._workflow_write({"state": "repair_completed"})
+            repair.job_card_id.message_post(body=_("Repair completed after Delivery Inspection."))
+        return result
 
 
 class WorkshopCustomerVehicle(models.Model):
