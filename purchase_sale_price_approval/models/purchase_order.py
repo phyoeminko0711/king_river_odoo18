@@ -1,5 +1,4 @@
 from odoo import _, api, fields, models
-from odoo.tools import float_compare
 
 
 class PurchaseOrder(models.Model):
@@ -25,14 +24,10 @@ class PurchaseOrder(models.Model):
         }
 
     def button_confirm(self):
-        result = super().button_confirm()
-        self._generate_pending_sale_price_updates()
-        return result
+        return super().button_confirm()
 
     def button_done(self):
-        result = super().button_done()
-        self._generate_pending_sale_price_updates()
-        return result
+        return super().button_done()
 
     def button_cancel(self):
         result = super().button_cancel()
@@ -40,16 +35,7 @@ class PurchaseOrder(models.Model):
         return result
 
     def _should_create_sale_price_update(self, vals):
-        currency = self.env["res.currency"].browse(vals["currency_id"])
-
-        return (
-                float_compare(
-                    vals["calculated_sale_price"],
-                    vals["old_sale_price"],
-                    precision_rounding=currency.rounding,
-                )
-                > 0
-        )
+        return False
 
     def _prepare_sale_price_update_values(self, order_line, rule_line, effective_date):
         self.ensure_one()
@@ -133,97 +119,7 @@ class PurchaseOrder(models.Model):
         return False
 
     def _generate_pending_sale_price_updates(self):
-        sale_price_update_model = self.env["sale.price.update"].sudo()
-        rule_line_model = self.env["sale.price.rule.line"].sudo()
-        settings = self._get_sale_price_approval_settings()
-
-        if not settings["enabled"]:
-            return
-
-        for order in self:
-            created_updates = sale_price_update_model.browse()
-
-            effective_date = (
-                order.date_approve.date()
-                if order.date_approve
-                else fields.Date.context_today(order)
-            )
-
-            order_lines = order.order_line.filtered(
-                lambda line: not line.display_type and line.product_id
-            )
-
-            for order_line in order_lines:
-                if (
-                        not settings["include_service_products"]
-                        and order_line.product_id.type == "service"
-                ):
-                    continue
-
-                rule_line = rule_line_model._find_matching_rule_line(
-                    order_line.product_id,
-                    order_line.price_unit,
-                    order.company_id,
-                    order.currency_id,
-                    effective_date,
-                )
-
-                if not rule_line:
-                    continue
-
-                vals = order._prepare_sale_price_update_values(
-                    order_line,
-                    rule_line,
-                    effective_date,
-                )
-
-                # Only propose a price update when the calculated
-                # sale price is greater than the current sale price.
-                if not order._should_create_sale_price_update(vals):
-                    continue
-
-                existing_updates = sale_price_update_model.search(
-                    [
-                        ("purchase_order_line_id", "=", order_line.id),
-                        ("product_id", "=", order_line.product_id.id),
-                    ],
-                    order="id desc",
-                )
-
-                latest_update = existing_updates[:1]
-
-                if latest_update and not order._has_meaningful_update_change(
-                        latest_update,
-                        vals,
-                ):
-                    continue
-
-                if latest_update:
-                    vals["previous_update_id"] = latest_update.id
-
-                new_update = sale_price_update_model.create(vals)
-
-                if latest_update and latest_update.state == "pending":
-                    latest_update.with_context(
-                        skip_sale_price_update_protection=True
-                    ).write(
-                        {
-                            "state": "superseded",
-                            "superseded_by_id": new_update.id,
-                        }
-                    )
-
-                created_updates |= new_update
-
-            if created_updates:
-                order.message_post(
-                    body=_(
-                        "%s pending Sale Price Update record(s) "
-                        "created for approval."
-                    )
-                         % len(created_updates)
-                )
-                order._schedule_sale_price_activities(created_updates)
+        return self.env["sale.price.update"]
 
     def _cancel_related_sale_price_updates(self):
         for order in self:

@@ -18,12 +18,33 @@ class SalePriceUpdate(models.Model):
         index=True,
     )
     currency_id = fields.Many2one("res.currency", required=True)
-    purchase_order_id = fields.Many2one("purchase.order", required=True, ondelete="restrict", index=True)
+    purchase_order_id = fields.Many2one("purchase.order", ondelete="restrict", index=True)
     purchase_order_line_id = fields.Many2one(
         "purchase.order.line",
-        required=True,
         ondelete="restrict",
         index=True,
+    )
+    landed_cost_id = fields.Many2one(
+        "stock.landed.cost",
+        string="Landed Cost",
+        ondelete="restrict",
+        index=True,
+        check_company=True,
+    )
+    valuation_adjustment_line_ids = fields.Many2many(
+        "stock.valuation.adjustment.lines",
+        "sale_price_update_valuation_rel",
+        "update_id",
+        "valuation_line_id",
+        string="Valuation Adjustment Lines",
+    )
+    cost_source = fields.Selection(
+        [
+            ("purchase", "Purchase Price"),
+            ("landed_cost", "Landed Cost"),
+        ],
+        default="landed_cost",
+        required=True,
     )
     vendor_id = fields.Many2one(related="purchase_order_id.partner_id", store=True, index=True)
     product_id = fields.Many2one("product.product", required=True, index=True)
@@ -41,6 +62,11 @@ class SalePriceUpdate(models.Model):
     purchase_price = fields.Monetary(required=True, readonly=True, currency_field="source_currency_id", string="Purchase Price")
     source_currency_id = fields.Many2one("res.currency", readonly=True)
     converted_purchase_price = fields.Monetary(readonly=True, currency_field="currency_id")
+    landed_unit_cost = fields.Monetary(
+        string="Landed Unit Cost",
+        currency_field="currency_id",
+        readonly=True,
+    )
     old_sale_price = fields.Monetary(required=True, readonly=True, currency_field="currency_id", string="Previous Sale Price")
     markup_type = fields.Selection([("percentage", "Percentage"), ("fixed", "Fixed Amount")], readonly=True)
     markup_value = fields.Float(readonly=True)
@@ -87,12 +113,25 @@ class SalePriceUpdate(models.Model):
         ("name_company_unique", "unique(name, company_id)", "The reference must be unique per company."),
     ]
 
+    def init(self):
+        self.env.cr.execute(
+            """
+            UPDATE sale_price_update
+               SET cost_source = 'purchase'
+             WHERE landed_cost_id IS NULL
+               AND purchase_order_id IS NOT NULL
+               AND (cost_source IS NULL OR cost_source = 'landed_cost')
+            """
+        )
+
     @api.model_create_multi
     def create(self, vals_list):
         sequence = self.env["ir.sequence"]
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = sequence.next_by_code("sale.price.update") or "New"
+            if not vals.get("cost_source") and vals.get("purchase_order_id") and not vals.get("landed_cost_id"):
+                vals["cost_source"] = "purchase"
             if not vals.get("approved_sale_price") and vals.get("calculated_sale_price"):
                 vals["approved_sale_price"] = vals["calculated_sale_price"]
         return super().create(vals_list)
@@ -178,29 +217,73 @@ class SalePriceUpdate(models.Model):
             proposed_price = purchase_price + markup_value
         return self._round_sale_price(proposed_price, currency)
 
+    def _has_meaningful_update_change(self, new_vals):
+        """Return whether stored pricing data differs from proposed values."""
+        self.ensure_one()
+        monetary_fields = [
+            "purchase_price",
+            "converted_purchase_price",
+            "landed_unit_cost",
+            "old_sale_price",
+            "calculated_sale_price",
+            "approved_sale_price",
+        ]
+        for field_name in monetary_fields:
+            if self[field_name] != new_vals.get(field_name):
+                return True
+        comparable_fields = [
+            "currency_id",
+            "source_currency_id",
+            "rule_line_id",
+            "effective_date",
+            "conversion_date",
+            "cost_source",
+        ]
+        for field_name in comparable_fields:
+            current_value = self[field_name]
+            proposed_value = new_vals.get(field_name)
+            if hasattr(current_value, "id"):
+                current_value = current_value.id
+            if current_value != proposed_value:
+                return True
+        return False
+
     def _post_approval_messages(self):
         self.ensure_one()
         self.message_post(
             body=_("Sale price approved. Product sale price updated to %s.") % self.approved_sale_price
         )
-        self.purchase_order_id.message_post(
-            body=_(
-                "Sale Price Update %(update)s approved for product %(product)s. New sale price: %(price)s."
+        if self.purchase_order_id:
+            self.purchase_order_id.message_post(
+                body=_(
+                    "Sale Price Update %(update)s approved for product %(product)s. New sale price: %(price)s."
+                )
+                % {
+                    "update": self.display_name,
+                    "product": self.product_id.display_name,
+                    "price": self.approved_sale_price,
+                }
             )
-            % {
-                "update": self.display_name,
-                "product": self.product_id.display_name,
-                "price": self.approved_sale_price,
-            }
-        )
+        if self.landed_cost_id:
+            self.landed_cost_id.message_post(
+                body=_(
+                    "Sale Price Update %(update)s approved for product %(product)s. New sale price: %(price)s."
+                )
+                % {
+                    "update": self.display_name,
+                    "product": self.product_id.display_name,
+                    "price": self.approved_sale_price,
+                }
+            )
         if hasattr(self.product_tmpl_id, "message_post"):
+            source_label = self.purchase_order_id.display_name or self.landed_cost_id.display_name or _("manual update")
             self.product_tmpl_id.message_post(
                 body=_(
-                    "Sale price updated from Purchase Order %(po)s through Sale Price Update %(update)s. "
+                    "Sale price updated from %(source)s through Sale Price Update %(update)s. "
                     "Old price: %(old)s, new price: %(new)s."
                 )
                 % {
-                    "po": self.purchase_order_id.display_name,
+                    "source": source_label,
                     "update": self.display_name,
                     "old": self.old_sale_price,
                     "new": self.approved_sale_price,
@@ -304,15 +387,16 @@ class SalePriceUpdate(models.Model):
                 }
             )
             record.message_post(body=_("Sale price update rejected."))
-            record.purchase_order_id.message_post(
-                body=_(
-                    "Sale Price Update %(update)s rejected for product %(product)s."
-                )
-                % {
-                    "update": record.display_name,
-                    "product": record.product_id.display_name,
-                }
-            )
+            body = _(
+                "Sale Price Update %(update)s rejected for product %(product)s."
+            ) % {
+                "update": record.display_name,
+                "product": record.product_id.display_name,
+            }
+            if record.purchase_order_id:
+                record.purchase_order_id.message_post(body=body)
+            if record.landed_cost_id:
+                record.landed_cost_id.message_post(body=body)
         return True
 
     def action_cancel(self):
