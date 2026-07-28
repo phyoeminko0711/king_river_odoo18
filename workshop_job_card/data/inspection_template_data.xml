@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="inspection_template_customer_check" model="workshop.inspection.template">
+        <field name="name">Customer Vehicle Condition Check</field>
+        <field name="inspection_type">customer_check</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="inspection_template_technician" model="workshop.inspection.template">
+        <field name="name">Technician Inspection</field>
+        <field name="inspection_type">technician_inspection</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="inspection_template_delivery" model="workshop.inspection.template">
+        <field name="name">Delivery Inspection</field>
+        <field name="inspection_type">delivery_inspection</field>
+        <field name="sequence">30</field>
+    </record>
+
+    <function model="workshop.inspection.template.line" name="create">
+        <value eval="[
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 10, 'description': 'Windshield', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 20, 'description': 'Side Mirror', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 30, 'description': 'Head Lamp', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 40, 'description': 'Tail Lamp', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 50, 'description': 'Tire Condition', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 60, 'description': 'Wheel Nut', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 70, 'description': 'Fuel Level', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 80, 'description': 'Scratch', 'default_result': 'no', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 90, 'description': 'Dent', 'default_result': 'no', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 100, 'description': 'Tool Kit', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 110, 'description': 'Spare Tire', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 120, 'description': 'Jack', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 130, 'description': 'Audio', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 140, 'description': 'Dash Camera', 'default_result': 'no', 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 150, 'description': 'Customer Belongings', 'default_result': 'no', 'required': True, 'remark_required': True}
+        ]"/>
+    </function>
+
+    <function model="workshop.inspection.template.line" name="create">
+        <value eval="[
+            {'template_id': ref('inspection_template_technician'), 'sequence': 10, 'description': 'Engine Oil', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 20, 'description': 'Brake Oil', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 30, 'description': 'Coolant', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 40, 'description': 'Battery', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 50, 'description': 'Suspension', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 60, 'description': 'Brake System', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 70, 'description': 'Steering', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 80, 'description': 'Air Conditioner', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 90, 'description': 'OBD Scan', 'default_result': 'no', 'required': True, 'remark_required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 100, 'description': 'Engine Noise', 'default_result': 'no', 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 110, 'description': 'Leakage', 'default_result': 'no', 'required': True}
+        ]"/>
+    </function>
+
+    <function model="workshop.inspection.template.line" name="create">
+        <value eval="[
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 10, 'description': 'Fluid Levels', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 20, 'description': 'Dashboard Warning Lights', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 30, 'description': 'Body Damage', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 40, 'description': 'Accessories', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 50, 'description': 'Customer Belongings', 'default_result': 'yes', 'required': True, 'remark_required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 60, 'description': 'Cleanliness', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 70, 'description': 'Road Test', 'default_result': 'yes', 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 80, 'description': 'Brake Test', 'default_result': 'yes', 'required': True}
+        ]"/>
+    </function>
+</odoo>
+

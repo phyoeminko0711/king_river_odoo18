@@ -16,7 +16,7 @@
                        widget="badge"
                        decoration-muted="state in ['draft', 'cancelled']"
                        decoration-warning="state == 'sent'"
-                       decoration-success="state in ['approved', 'repair_created']"
+                       decoration-success="state in ['approved', 'repair_created', 'repair_completed']"
                        decoration-danger="state == 'rejected'"/>
             </list>
         </field>
@@ -28,9 +28,15 @@
         <field name="arch" type="xml">
             <form string="Job Card">
                 <header>
+                    <button name="action_customer_check" type="object"
+                            string="Customer Check" class="oe_highlight"
+                            invisible="state != 'draft' or customer_check_completed"/>
+                    <button name="action_technician_inspection" type="object"
+                            string="Technician Inspection" class="oe_highlight"
+                            invisible="state != 'draft' or not customer_check_completed or technician_inspection_completed"/>
                     <button name="action_send_to_customer" type="object"
                             string="Send to Customer" class="oe_highlight"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft' or not customer_check_completed or not technician_inspection_completed"/>
                     <button name="action_approve" type="object" string="Approve"
                             class="oe_highlight" invisible="state != 'sent'"/>
                     <button name="action_reject" type="object" string="Reject"
@@ -44,10 +50,17 @@
                             string="Reset to Draft"
                             invisible="state not in ['rejected', 'cancelled']"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,sent,approved,repair_created"/>
+                           statusbar_visible="draft,sent,approved,repair_created,repair_completed"/>
                 </header>
                 <sheet>
                     <field name="repair_order_id" invisible="1"/>
+                    <field name="customer_check_state" invisible="1"/>
+                    <field name="technician_inspection_state" invisible="1"/>
+                    <field name="customer_check_completed" invisible="1"/>
+                    <field name="technician_inspection_completed" invisible="1"/>
+                    <field name="delivery_inspection_completed" invisible="1"/>
+                    <field name="customer_check_in_progress" invisible="1"/>
+                    <field name="technician_inspection_in_progress" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_repair_order" type="object"
                                 class="oe_stat_button" icon="fa-wrench"
@@ -72,8 +85,21 @@
                             <field name="customer_phone"/>
                             <field name="vehicle_id"
                                    domain="[('customer_id', '=', customer_id)]"
-                                   options="{'no_create': True}"
-                                   readonly="state != 'draft'"/>
+                                   context="{
+                                   'default_customer_id': customer_id,
+                                   'form_view_ref': 'workshop_customer_vehicle.view_customer_vehicle_form'
+                               }"
+                                                           options="{
+                                   'no_create': false,
+                                   'no_create_edit': false,
+                                   'no_open': false
+                               }"
+                               readonly="state != 'draft'"
+                            />
+<!--                            <field name="vehicle_id"-->
+<!--                                   domain="[('customer_id', '=', customer_id)]"-->
+<!--                                   options="{'no_create': True}"-->
+<!--                                   readonly="state != 'draft'"/>-->
                             <field name="plate_no"/>
                             <field name="mileage" readonly="state != 'draft'"/>
                         </group>
@@ -88,7 +114,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Complaint &amp; Inspection"
+                        <page string="Complaint &amp; Diagnosis"
                               name="complaint_inspection">
                             <group>
                                 <field name="complaint" readonly="state != 'draft'"/>
@@ -137,6 +163,20 @@
                                 <field name="currency_id" invisible="1"/>
                             </group>
                         </page>
+                        <page string="Inspection History" name="inspection_history">
+                            <field name="inspection_ids" nolabel="1" readonly="1" create="0" delete="0">
+                                <list create="0" edit="0" delete="0"
+                                      decoration-success="state == 'completed'"
+                                      decoration-muted="state == 'cancelled'">
+                                    <field name="inspection_type"/>
+                                    <field name="template_id"/>
+                                    <field name="inspector_id"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="inspection_date"/>
+                                    <field name="completed_date"/>
+                                </list>
+                            </field>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -160,6 +200,8 @@
                         domain="[('state', '=', 'approved')]"/>
                 <filter string="Repair Order Created" name="repair_created"
                         domain="[('state', '=', 'repair_created')]"/>
+                <filter string="Repair Completed" name="repair_completed"
+                        domain="[('state', '=', 'repair_completed')]"/>
                 <filter string="Rejected" name="rejected"
                         domain="[('state', '=', 'rejected')]"/>
                 <filter string="Cancelled" name="cancelled"

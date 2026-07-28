@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_workshop_job_card" model="ir.actions.report">
+        <field name="name">Job Card</field>
+        <field name="model">workshop.job.card</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">workshop_job_card.report_workshop_job_card_document</field>
+        <field name="report_file">workshop_job_card.report_workshop_job_card_document</field>
+        <field name="binding_model_id" ref="model_workshop_job_card"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_workshop_job_card_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Job Card: <span t-field="doc.name"/></h2>
+                        <div class="row mt16 mb16">
+                            <div class="col-6">
+                                <strong>Customer:</strong>
+                                <span t-field="doc.customer_id"/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Vehicle:</strong>
+                                <span t-field="doc.vehicle_id"/>
+                            </div>
+                        </div>
+                        <div class="row mb16">
+                            <div class="col-6">
+                                <strong>Plate No.:</strong>
+                                <span t-field="doc.plate_no"/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Technician:</strong>
+                                <span t-field="doc.technician_id"/>
+                            </div>
+                        </div>
+
+                        <t t-foreach="[
+                            ('customer_check', 'Customer Vehicle Condition Check'),
+                            ('technician_inspection', 'Technician Inspection'),
+                            ('delivery_inspection', 'Delivery Inspection')
+                        ]" t-as="inspection_info">
+                            <t t-set="inspections" t-value="doc.inspection_ids.filtered(lambda inspection: inspection.inspection_type == inspection_info[0] and inspection.state == 'completed')"/>
+                            <h3 class="mt24"><span t-out="inspection_info[1]"/></h3>
+                            <t t-if="not inspections">
+                                <p>No completed inspection.</p>
+                            </t>
+                            <t t-foreach="inspections" t-as="inspection">
+                                <p>
+                                    <strong>Inspector:</strong>
+                                    <span t-field="inspection.inspector_id"/>
+                                    <strong class="ms-3">Date:</strong>
+                                    <span t-field="inspection.inspection_date"/>
+                                    <strong class="ms-3">Completed:</strong>
+                                    <span t-field="inspection.completed_date"/>
+                                </p>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Description</th>
+                                            <th>Result</th>
+                                            <th>Remark</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="inspection.line_ids" t-as="line">
+                                            <td><span t-field="line.checkpoint_name"/></td>
+                                            <td><span t-field="line.result"/></td>
+                                            <td><span t-field="line.remark"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <p t-if="inspection.general_remark">
+                                    <strong>Remarks:</strong>
+                                    <span t-field="inspection.general_remark"/>
+                                </p>
+                            </t>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

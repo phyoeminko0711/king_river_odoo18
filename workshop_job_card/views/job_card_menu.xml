@@ -21,4 +21,17 @@
               action="action_repair_service"
               groups="base.group_system"
               sequence="5"/>
+
+    <menuitem id="menu_workshop_inspection_template"
+              name="Inspection Templates"
+              parent="repair.repair_menu_config"
+              action="action_workshop_inspection_template"
+              groups="workshop_job_card.group_workshop_manager,base.group_system"
+              sequence="15"/>
+
+    <menuitem id="menu_workshop_inspections"
+              name="Inspections"
+              parent="repair.menu_repair_order"
+              action="action_workshop_job_card_inspection"
+              sequence="20"/>
 </odoo>

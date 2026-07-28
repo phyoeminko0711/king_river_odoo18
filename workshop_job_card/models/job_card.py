@@ -52,6 +52,13 @@ class WorkshopJobCard(models.Model):
         ondelete="restrict",
         tracking=True,
     )
+    company_id = fields.Many2one(
+        "res.company",
+        string="Company",
+        required=True,
+        default=lambda self: self.env.company,
+        index=True,
+    )
     vehicle_id = fields.Many2one(
         "workshop.customer.vehicle",
         string="Vehicle",
@@ -148,6 +155,7 @@ class WorkshopJobCard(models.Model):
             ("sent", "Sent to Customer"),
             ("approved", "Approved"),
             ("repair_created", "Repair Order Created"),
+            ("repair_completed", "Repair Completed"),
             ("rejected", "Rejected"),
             ("cancelled", "Cancelled"),
         ],
@@ -169,6 +177,38 @@ class WorkshopJobCard(models.Model):
         ondelete="restrict",
     )
     repair_order_count = fields.Integer(compute="_compute_repair_order_count")
+    inspection_ids = fields.One2many(
+        "workshop.job.card.inspection",
+        "job_card_id",
+        string="Inspection History",
+    )
+    customer_check_state = fields.Selection(
+        compute="_compute_inspection_status",
+        selection=[
+            ("none", "Not Started"),
+            ("draft", "Draft"),
+            ("in_progress", "In Progress"),
+            ("completed", "Completed"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Customer Check",
+    )
+    customer_check_completed = fields.Boolean(compute="_compute_inspection_status")
+    customer_check_in_progress = fields.Boolean(compute="_compute_inspection_status")
+    technician_inspection_state = fields.Selection(
+        compute="_compute_inspection_status",
+        selection=[
+            ("none", "Not Started"),
+            ("draft", "Draft"),
+            ("in_progress", "In Progress"),
+            ("completed", "Completed"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Technician Inspection",
+    )
+    technician_inspection_completed = fields.Boolean(compute="_compute_inspection_status")
+    technician_inspection_in_progress = fields.Boolean(compute="_compute_inspection_status")
+    delivery_inspection_completed = fields.Boolean(compute="_compute_inspection_status")
 
     _sql_constraints = [
         (
@@ -182,6 +222,15 @@ class WorkshopJobCard(models.Model):
             "Mileage cannot be negative.",
         ),
     ]
+
+    def init(self):
+        self.env.cr.execute(
+            """
+            UPDATE workshop_job_card
+               SET state = 'draft'
+             WHERE state IN ('customer_check', 'technician_inspection')
+            """
+        )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -202,7 +251,7 @@ class WorkshopJobCard(models.Model):
         if self._WORKFLOW_FIELDS.intersection(vals):
             raise UserError(_("Use the Job Card workflow buttons to change its status."))
         if self._CLOSED_READONLY_FIELDS.intersection(vals) and any(
-            card.state in {"approved", "repair_created"} for card in self
+            card.state in {"approved", "repair_created", "repair_completed"} for card in self
         ):
             raise UserError(_("Approved Job Cards cannot be modified."))
         if vals.get("vehicle_id") and "mileage" not in vals:
@@ -220,6 +269,29 @@ class WorkshopJobCard(models.Model):
     def _compute_repair_order_count(self):
         for card in self:
             card.repair_order_count = 1 if card.repair_order_id else 0
+
+    @api.depends("inspection_ids.state", "inspection_ids.inspection_type", "inspection_ids.inspection_date")
+    def _compute_inspection_status(self):
+        for card in self:
+            customer_check = card._get_latest_inspection("customer_check")
+            technician_inspection = card._get_latest_inspection("technician_inspection")
+            card.customer_check_state = customer_check.state if customer_check else "none"
+            card.technician_inspection_state = technician_inspection.state if technician_inspection else "none"
+            card.customer_check_completed = card._has_completed_inspection("customer_check")
+            card.technician_inspection_completed = card._has_completed_inspection("technician_inspection")
+            card.delivery_inspection_completed = card._has_completed_inspection("delivery_inspection")
+            card.customer_check_in_progress = bool(
+                card.inspection_ids.filtered(
+                    lambda inspection: inspection.inspection_type == "customer_check"
+                    and inspection.state in ("draft", "in_progress")
+                )
+            )
+            card.technician_inspection_in_progress = bool(
+                card.inspection_ids.filtered(
+                    lambda inspection: inspection.inspection_type == "technician_inspection"
+                    and inspection.state in ("draft", "in_progress")
+                )
+            )
 
     @api.depends("line_ids.selected")
     def _compute_selected_line_count(self):
@@ -264,6 +336,92 @@ class WorkshopJobCard(models.Model):
     def _workflow_write(self, vals):
         return super(WorkshopJobCard, self).write(vals)
 
+    def _get_latest_inspection(self, inspection_type):
+        self.ensure_one()
+        return self.inspection_ids.filtered(
+            lambda inspection: inspection.inspection_type == inspection_type
+        ).sorted(lambda inspection: (inspection.inspection_date, inspection.id), reverse=True)[:1]
+
+    def _has_completed_inspection(self, inspection_type):
+        self.ensure_one()
+        return bool(
+            self.inspection_ids.filtered(
+                lambda inspection: inspection.inspection_type == inspection_type
+                and inspection.state == "completed"
+            )
+        )
+
+    def _get_default_inspection_template(self, inspection_type):
+        self.ensure_one()
+        template = self.env["workshop.inspection.template"].search(
+            [
+                ("inspection_type", "=", inspection_type),
+                ("active", "=", True),
+                ("company_id", "=", self.company_id.id),
+            ],
+            order="sequence, id",
+            limit=1,
+        )
+        if not template:
+            raise ValidationError(
+                _("Please configure an active %s inspection template first.")
+                % dict(self.env["workshop.inspection.template"]._fields["inspection_type"].selection)[inspection_type]
+            )
+        return template
+
+    def _open_or_create_inspection(self, inspection_type, repair_order=False):
+        self.ensure_one()
+        inspection = self.inspection_ids.filtered(
+            lambda record: record.inspection_type == inspection_type and record.state == "completed"
+        )[:1]
+        if inspection:
+            return {
+                "type": "ir.actions.act_window",
+                "name": inspection.display_name,
+                "res_model": "workshop.job.card.inspection",
+                "view_mode": "form",
+                "res_id": inspection.id,
+                "target": "current",
+            }
+        template = self._get_default_inspection_template(inspection_type)
+        inspector = self.env.user
+        if inspection_type == "technician_inspection" and self.technician_id.user_id:
+            inspector = self.technician_id.user_id
+        wizard = self.env["workshop.inspection.check.wizard"].create(
+            {
+                "job_card_id": self.id,
+                "repair_order_id": repair_order.id if repair_order else False,
+                "inspection_type": inspection_type,
+                "template_id": template.id,
+                "inspector_id": inspector.id,
+                "inspection_date": fields.Datetime.now(),
+            }
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Inspection Check"),
+            "res_model": "workshop.inspection.check.wizard",
+            "view_mode": "form",
+            "view_id": self.env.ref("workshop_job_card.view_workshop_inspection_check_wizard_form").id,
+            "res_id": wizard.id,
+            "target": "new",
+        }
+
+    def action_customer_check(self):
+        self.ensure_one()
+        self._ensure_state("draft")
+        return self._open_or_create_inspection("customer_check")
+
+    def action_technician_inspection(self):
+        self.ensure_one()
+        if not self._has_completed_inspection("customer_check"):
+            raise ValidationError(_("Complete the Customer Vehicle Condition Check before Technician Inspection."))
+        self._ensure_state("draft")
+        return self._open_or_create_inspection("technician_inspection")
+
+    def _sync_inspection_workflow_state(self):
+        return True
+
     def action_open_add_repair_service_wizard(self):
         self._ensure_state("draft", "sent")
         action = self.env["ir.actions.actions"]._for_xml_id(
@@ -281,7 +439,7 @@ class WorkshopJobCard(models.Model):
             raise UserError(
                 _(
                     "Repair Services can only be removed while the Job Card is "
-                    "in Draft or Sent to Customer state."
+                    "before customer approval."
                 )
             )
         action = self.env["ir.actions.actions"]._for_xml_id(
@@ -318,6 +476,11 @@ class WorkshopJobCard(models.Model):
 
     def action_send_to_customer(self):
         self._ensure_state("draft")
+        if not (
+            self._has_completed_inspection("customer_check")
+            and self._has_completed_inspection("technician_inspection")
+        ):
+            raise ValidationError(_("Complete the Customer Check and Technician Inspection before sending the Job Card to the customer."))
         if not self.customer_id or not self.vehicle_id or not self.technician_id:
             raise ValidationError(
                 _("Customer, Vehicle, and Technician are required before sending.")

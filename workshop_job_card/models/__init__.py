@@ -1,4 +1,6 @@
 from . import job_card
+from . import inspection_template
+from . import job_card_inspection
 from . import job_card_line
 from . import repair_service
 from . import job_card_service
