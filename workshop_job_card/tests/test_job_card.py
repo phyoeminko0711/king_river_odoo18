@@ -494,11 +494,8 @@ class TestWorkshopJobCard(TransactionCase):
         card.action_create_repair_order()
         repair = card.repair_order_id
 
-        with self.assertRaisesRegex(ValidationError, "Complete the Delivery Check before finishing"):
-            repair.action_repair_done()
-
-        first_action = repair.action_delivery_inspection()
-        second_action = repair.action_delivery_inspection()
+        first_action = repair.action_repair_done()
+        second_action = repair.action_repair_done()
         self.assertEqual(first_action["res_model"], second_action["res_model"])
 
         delivery = self._complete_inspection_action(first_action)

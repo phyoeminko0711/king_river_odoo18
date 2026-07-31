@@ -139,7 +139,7 @@ class RepairOrder(models.Model):
     def action_repair_done(self):
         for repair in self:
             if repair.job_card_id and not repair.job_card_id._has_completed_inspection("delivery_inspection"):
-                raise ValidationError(_("Complete the Delivery Check before finishing the Repair Order."))
+                return repair.action_delivery_inspection()
         result = super().action_repair_done()
         for repair in self.filtered("job_card_id"):
             repair.job_card_id._workflow_write({"state": "repair_completed"})

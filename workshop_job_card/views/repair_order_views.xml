@@ -13,13 +13,6 @@
                         <span class="o_stat_text">Job Card</span>
                     </div>
                 </button>
-                <button name="action_delivery_inspection" type="object"
-                        class="oe_stat_button" icon="fa-check-square"
-                        invisible="not job_card_id or delivery_inspection_completed or state not in ['confirmed', 'under_repair']">
-                    <div class="o_field_widget o_stat_info">
-                        <span class="o_stat_text">Delivery Check</span>
-                    </div>
-                </button>
                 <button name="action_view_delivery_inspections" type="object"
                         class="oe_stat_button" icon="fa-list"
                         invisible="not job_card_id">
