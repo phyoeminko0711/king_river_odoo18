@@ -37,6 +37,48 @@
                 <field name="delivery_inspection_state" readonly="1"
                        invisible="not job_card_id"/>
             </field>
+            <field name="user_id" position="after">
+                <field name="technician_id"
+                       domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [assistant_technician_id, testing_driver_id])]"/>
+                <field name="assistant_technician_id"
+                       domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [technician_id, testing_driver_id])]"/>
+                <field name="testing_driver_id"
+                       domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [technician_id, assistant_technician_id])]"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_repair_order_list_workshop_employees" model="ir.ui.view">
+        <field name="name">repair.order.list.workshop.employees</field>
+        <field name="model">repair.order</field>
+        <field name="inherit_id" ref="repair.view_repair_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="technician_id" optional="hide"/>
+                <field name="assistant_technician_id" optional="hide"/>
+                <field name="testing_driver_id" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_repair_order_search_workshop_employees" model="ir.ui.view">
+        <field name="name">repair.order.search.workshop.employees</field>
+        <field name="model">repair.order</field>
+        <field name="inherit_id" ref="repair.view_repair_order_form_filter"/>
+        <field name="arch" type="xml">
+            <field name="sale_order_id" position="after">
+                <field name="technician_id"/>
+                <field name="assistant_technician_id"/>
+                <field name="testing_driver_id"/>
+            </field>
+            <filter name="status" position="after">
+                <filter string="Technician" name="group_technician"
+                        context="{'group_by': 'technician_id'}"/>
+                <filter string="Assistant Technician" name="group_assistant_technician"
+                        context="{'group_by': 'assistant_technician_id'}"/>
+                <filter string="Testing Driver" name="group_testing_driver"
+                        context="{'group_by': 'testing_driver_id'}"/>
+            </filter>
         </field>
     </record>
 </odoo>

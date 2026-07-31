@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class WorkshopInspectionTemplate(models.Model):
@@ -45,32 +46,44 @@ class WorkshopInspectionTemplateLine(models.Model):
     sequence = fields.Integer(default=10)
     description = fields.Char(required=True)
     name = fields.Char(string="Checkpoint", related="description", readonly=False)
-    default_result = fields.Selection(
-        [
-            ("yes", "Yes"),
-            ("no", "No"),
-        ],
-        default="yes",
+    result_type_id = fields.Many2one(
+        "workshop.inspection.result.type",
+        string="Result Type",
+        default=lambda self: self._default_result_type_id(),
         required=True,
+        ondelete="restrict",
+    )
+    default_result_option_id = fields.Many2one(
+        "workshop.inspection.result.option",
+        string="Default Result",
+        domain="[('result_type_id', '=', result_type_id), ('active', '=', True)]",
+        ondelete="restrict",
     )
     required = fields.Boolean(default=True)
-    remark_required = fields.Boolean(string="Remark Required When No")
-    remark_required_when_no = fields.Boolean(
-        string="Remark Required When No",
-        related="remark_required",
-        readonly=False,
-    )
     active = fields.Boolean(default=True)
 
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE workshop_inspection_template_line
-               SET default_result = CASE
-                   WHEN default_result = 'ok' THEN 'yes'
-                   WHEN default_result IN ('ng', 'na') THEN 'no'
-                   ELSE default_result
-               END
-             WHERE default_result IN ('ok', 'ng', 'na')
-            """
+    def _default_result_type_id(self):
+        result_type = self.env.ref(
+            "workshop_job_card.inspection_result_type_yes_no",
+            raise_if_not_found=False,
         )
+        if not result_type:
+            result_type = self.env["workshop.inspection.result.type"].search(
+                [("code", "=", "yes_no")],
+                limit=1,
+            )
+        return result_type.id if result_type else False
+
+    @api.onchange("result_type_id")
+    def _onchange_result_type_id(self):
+        if self.default_result_option_id.result_type_id != self.result_type_id:
+            self.default_result_option_id = False
+
+    @api.constrains("result_type_id", "default_result_option_id")
+    def _check_default_option_matches_type(self):
+        for line in self:
+            if (
+                line.default_result_option_id
+                and line.default_result_option_id.result_type_id != line.result_type_id
+            ):
+                raise ValidationError(_("Default Result must belong to the selected Result Type."))

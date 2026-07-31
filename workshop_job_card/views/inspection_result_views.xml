@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workshop_inspection_result_type_list" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.type.list</field>
+        <field name="model">workshop.inspection.result.type</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_workshop_inspection_result_type_form" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.type.form</field>
+        <field name="model">workshop.inspection.result.type</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Result Options">
+                            <field name="option_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="code"/>
+                                    <field name="is_positive"/>
+                                    <field name="requires_remark"/>
+                                    <field name="color"/>
+                                    <field name="icon"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_workshop_inspection_result_type_search" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.type.search</field>
+        <field name="model">workshop.inspection.result.type</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_workshop_inspection_result_type" model="ir.actions.act_window">
+        <field name="name">Result Types</field>
+        <field name="res_model">workshop.inspection.result.type</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_workshop_inspection_result_type_search"/>
+    </record>
+
+    <record id="view_workshop_inspection_result_option_list" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.option.list</field>
+        <field name="model">workshop.inspection.result.option</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="result_type_id"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="is_positive"/>
+                <field name="requires_remark"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_workshop_inspection_result_option_form" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.option.form</field>
+        <field name="model">workshop.inspection.result.option</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="result_type_id"/>
+                            <field name="name"/>
+                            <field name="code"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="is_positive"/>
+                            <field name="requires_remark"/>
+                            <field name="color"/>
+                            <field name="icon"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_workshop_inspection_result_option_search" model="ir.ui.view">
+        <field name="name">workshop.inspection.result.option.search</field>
+        <field name="model">workshop.inspection.result.option</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="result_type_id"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_result_type" string="Result Type" context="{'group_by': 'result_type_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_workshop_inspection_result_option" model="ir.actions.act_window">
+        <field name="name">Result Options</field>
+        <field name="res_model">workshop.inspection.result.option</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_workshop_inspection_result_option_search"/>
+    </record>
+</odoo>

@@ -20,19 +20,25 @@
                 <separator string="Checkpoint"/>
                 <field name="line_ids" invisible="1"/>
                 <field name="current_line_id" invisible="1"/>
+                <field name="current_option_ids" invisible="1"/>
                 <field name="total_checkpoint_count" invisible="1"/>
                 <field name="current_checkpoint_number" invisible="1"/>
-                <field name="all_checkpoints_answered" invisible="1"/>
                 <field name="can_go_previous" invisible="1"/>
                 <div class="text-center">
                     <field name="progress_text" readonly="1" nolabel="1" class="fw-bold"/>
                     <h2 invisible="not current_line_id">
                         <field name="current_checkpoint_name" readonly="1" nolabel="1"/>
                     </h2>
-                    <field name="current_checkpoint_description"
-                           readonly="1"
+<!--                    <field name="current_checkpoint_description"-->
+<!--                           readonly="1"-->
+<!--                           nolabel="1"-->
+<!--                           invisible="not current_checkpoint_description or not current_line_id"/>-->
+                    <field name="current_result_option_id"
+                           widget="radio"
+                           options="{'horizontal': true}"
+                           domain="[('id', 'in', current_option_ids)]"
                            nolabel="1"
-                           invisible="not current_checkpoint_description or not current_line_id"/>
+                           invisible="not current_line_id"/>
                     <field name="current_remark"
                            placeholder="Enter remark..."
                            invisible="not current_line_id"/>
@@ -43,17 +49,11 @@
                             string="Previous"
                             class="btn-secondary"
                             invisible="not can_go_previous"/>
-                    <button name="action_answer_yes"
+                    <button name="action_answer_selected"
                             type="object"
-                            string="Yes"
+                            string="Next"
                             icon="fa-check"
-                            class="btn-success btn-lg"
-                            invisible="not current_line_id"/>
-                    <button name="action_answer_no"
-                            type="object"
-                            string="No"
-                            icon="fa-times"
-                            class="btn-danger btn-lg"
+                            class="btn-primary btn-lg"
                             invisible="not current_line_id"/>
                     <button string="Cancel" special="cancel" class="btn-secondary"/>
                 </footer>

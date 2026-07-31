@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="inspection_result_type_yes_no" model="workshop.inspection.result.type">
+        <field name="name">Yes / No</field>
+        <field name="code">yes_no</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="inspection_result_option_yes" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_yes_no"/>
+        <field name="name">Yes</field>
+        <field name="code">yes</field>
+        <field name="sequence">10</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_no" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_yes_no"/>
+        <field name="name">No</field>
+        <field name="code">no</field>
+        <field name="sequence">20</field>
+        <field name="is_positive">0</field>
+        <field name="requires_remark">1</field>
+    </record>
+
+    <record id="inspection_result_type_pass_fail" model="workshop.inspection.result.type">
+        <field name="name">Pass / Fail</field>
+        <field name="code">pass_fail</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="inspection_result_option_pass" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_pass_fail"/>
+        <field name="name">Pass</field>
+        <field name="code">pass</field>
+        <field name="sequence">10</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_fail" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_pass_fail"/>
+        <field name="name">Fail</field>
+        <field name="code">fail</field>
+        <field name="sequence">20</field>
+        <field name="is_positive">0</field>
+        <field name="requires_remark">1</field>
+    </record>
+
+    <record id="inspection_result_type_good_fair_poor" model="workshop.inspection.result.type">
+        <field name="name">Good / Fair / Poor</field>
+        <field name="code">good_fair_poor</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="inspection_result_option_good" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_good_fair_poor"/>
+        <field name="name">Good</field>
+        <field name="code">good</field>
+        <field name="sequence">10</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_fair" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_good_fair_poor"/>
+        <field name="name">Fair</field>
+        <field name="code">fair</field>
+        <field name="sequence">20</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_poor" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_good_fair_poor"/>
+        <field name="name">Poor</field>
+        <field name="code">poor</field>
+        <field name="sequence">30</field>
+        <field name="is_positive">0</field>
+        <field name="requires_remark">1</field>
+    </record>
+
+    <record id="inspection_result_type_available_missing" model="workshop.inspection.result.type">
+        <field name="name">Available / Missing</field>
+        <field name="code">available_missing</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="inspection_result_option_available" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_available_missing"/>
+        <field name="name">Available</field>
+        <field name="code">available</field>
+        <field name="sequence">10</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_missing" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_available_missing"/>
+        <field name="name">Missing</field>
+        <field name="code">missing</field>
+        <field name="sequence">20</field>
+        <field name="is_positive">0</field>
+        <field name="requires_remark">1</field>
+    </record>
+
+    <record id="inspection_result_type_ok_ng_na" model="workshop.inspection.result.type">
+        <field name="name">OK / NG / N/A</field>
+        <field name="code">ok_ng_na</field>
+        <field name="sequence">50</field>
+    </record>
+    <record id="inspection_result_option_ok" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_ok_ng_na"/>
+        <field name="name">OK</field>
+        <field name="code">ok</field>
+        <field name="sequence">10</field>
+        <field name="is_positive">1</field>
+    </record>
+    <record id="inspection_result_option_ng" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_ok_ng_na"/>
+        <field name="name">NG</field>
+        <field name="code">ng</field>
+        <field name="sequence">20</field>
+        <field name="is_positive">0</field>
+        <field name="requires_remark">1</field>
+    </record>
+    <record id="inspection_result_option_na" model="workshop.inspection.result.option">
+        <field name="result_type_id" ref="inspection_result_type_ok_ng_na"/>
+        <field name="name">N/A</field>
+        <field name="code">na</field>
+        <field name="sequence">30</field>
+        <field name="is_positive">1</field>
+    </record>
+</odoo>

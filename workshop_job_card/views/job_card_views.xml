@@ -11,6 +11,8 @@
                 <field name="vehicle_id"/>
                 <field name="plate_no"/>
                 <field name="technician_id"/>
+                <field name="assistant_technician_id" optional="hide"/>
+                <field name="testing_driver_id" optional="hide"/>
                 <field name="total_amount" sum="Total"/>
                 <field name="state"
                        widget="badge"
@@ -54,6 +56,7 @@
                 </header>
                 <sheet>
                     <field name="repair_order_id" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
                     <field name="customer_check_state" invisible="1"/>
                     <field name="technician_inspection_state" invisible="1"/>
                     <field name="customer_check_completed" invisible="1"/>
@@ -102,15 +105,23 @@
 <!--                                   readonly="state != 'draft'"/>-->
                             <field name="plate_no"/>
                             <field name="mileage" readonly="state != 'draft'"/>
-                        </group>
-                        <group>
-                            <field name="technician_id" readonly="state != 'draft'"/>
-                            <field name="technician_job_id"/>
                             <field name="vehicle_brand_id"/>
                             <field name="vehicle_model_id"/>
                             <field name="chassis_no"/>
                             <field name="engine_no"/>
                             <field name="color"/>
+                        </group>
+                        <group>
+                            <field name="technician_id"
+                                   domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [assistant_technician_id, testing_driver_id])]"
+                                   readonly="state != 'draft'"/>
+                            <field name="assistant_technician_id"
+                                   domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [technician_id, testing_driver_id])]"
+                                   readonly="state != 'draft'"/>
+                            <field name="testing_driver_id"
+                                   domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [technician_id, assistant_technician_id])]"
+                                   readonly="state != 'draft'"/>
+                            <field name="technician_job_id"/>
                         </group>
                     </group>
                     <notebook>
@@ -193,6 +204,8 @@
                 <field name="vehicle_id"/>
                 <field name="plate_no"/>
                 <field name="technician_id"/>
+                <field name="assistant_technician_id"/>
+                <field name="testing_driver_id"/>
                 <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Sent to Customer" name="sent"
                         domain="[('state', '=', 'sent')]"/>
@@ -213,6 +226,10 @@
                             context="{'group_by': 'vehicle_id'}"/>
                     <filter string="Technician" name="group_technician"
                             context="{'group_by': 'technician_id'}"/>
+                    <filter string="Assistant Technician" name="group_assistant_technician"
+                            context="{'group_by': 'assistant_technician_id'}"/>
+                    <filter string="Testing Driver" name="group_testing_driver"
+                            context="{'group_by': 'testing_driver_id'}"/>
                     <filter string="State" name="group_state"
                             context="{'group_by': 'state'}"/>
                 </group>

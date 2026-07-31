@@ -36,9 +36,10 @@
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="description" string="Checkpoint"/>
-                                    <field name="default_result"/>
+                                    <field name="result_type_id"/>
+                                    <field name="default_result_option_id"
+                                           domain="[('result_type_id', '=', result_type_id), ('active', '=', True)]"/>
                                     <field name="required"/>
-                                    <field name="remark_required_when_no"/>
                                     <field name="active"/>
                                 </list>
                             </field>
