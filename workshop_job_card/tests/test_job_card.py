@@ -78,7 +78,11 @@ class TestWorkshopJobCard(TransactionCase):
     def _complete_inspection_action(self, action):
         wizard = self.env[action["res_model"]].browse(action["res_id"])
         while wizard.current_line_id:
-            wizard.action_answer_yes()
+            option = wizard.current_line_id.result_type_id.option_ids.filtered(
+                lambda result: result.active and result.is_positive
+            )[:1]
+            wizard.current_result_option_id = option.id
+            wizard.action_answer_selected()
         return wizard.job_card_id._get_latest_inspection(wizard.inspection_type)
 
     def _wizard_from_action(self, action):
@@ -384,42 +388,50 @@ class TestWorkshopJobCard(TransactionCase):
         technician_second = card.action_technician_inspection()
         self.assertEqual(technician_first["res_model"], technician_second["res_model"])
 
-    def test_single_checkpoint_wizard_yes_no_navigation(self):
+    def test_single_checkpoint_wizard_dynamic_result_navigation(self):
         card = self._create_card()
         wizard = self._wizard_from_action(card.action_customer_check())
         first_line = wizard.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
         second_line = wizard.line_ids.sorted(lambda line: (line.sequence, line.id))[1]
+        positive_option = first_line.result_type_id.option_ids.filtered(lambda option: option.is_positive)[:1]
+        remark_option = second_line.result_type_id.option_ids.filtered("requires_remark")[:1]
 
         self.assertEqual(wizard.current_line_id, first_line)
         self.assertEqual(wizard.progress_text, "Checkpoint 1 of %s" % len(wizard.line_ids))
         self.assertFalse(card.inspection_ids)
 
-        wizard.action_answer_yes()
-        self.assertEqual(first_line.result, "yes")
+        wizard.current_result_option_id = positive_option.id
+        wizard.action_answer_selected()
+        self.assertEqual(first_line.result_option_id, positive_option)
         self.assertEqual(wizard.current_line_id, second_line)
 
         wizard.current_remark = "Glass cracked"
-        wizard.action_answer_no()
-        self.assertEqual(second_line.result, "no")
+        wizard.current_result_option_id = remark_option.id
+        wizard.action_answer_selected()
+        self.assertEqual(second_line.result_option_id, remark_option)
         self.assertEqual(second_line.remark, "Glass cracked")
 
         wizard.action_previous_checkpoint()
         self.assertEqual(wizard.current_line_id, second_line)
-        self.assertEqual(second_line.result, "no")
+        self.assertEqual(second_line.result_option_id, remark_option)
 
     def test_single_checkpoint_no_requires_remark_when_configured(self):
         card = self._create_card()
         wizard = self._wizard_from_action(card.action_customer_check())
-        required_line = wizard.line_ids.filtered("remark_required_when_no")[:1]
+        required_line = wizard.line_ids.filtered(
+            lambda line: line.result_type_id.option_ids.filtered("requires_remark")
+        )[:1]
+        remark_option = required_line.result_type_id.option_ids.filtered("requires_remark")[:1]
         wizard.current_line_id = required_line.id
+        wizard.current_result_option_id = remark_option.id
         wizard.current_remark = required_line.remark or False
 
-        with self.assertRaisesRegex(ValidationError, "Please enter a remark before marking this checkpoint as No"):
-            wizard.action_answer_no()
+        with self.assertRaisesRegex(ValidationError, "Please enter a remark"):
+            wizard.action_answer_selected()
 
         wizard.current_remark = "Customer items in vehicle"
-        wizard.action_answer_no()
-        self.assertEqual(required_line.result, "no")
+        wizard.action_answer_selected()
+        self.assertEqual(required_line.result_option_id, remark_option)
 
     def test_history_is_created_on_final_answer_only(self):
         card = self._create_card()
@@ -429,7 +441,11 @@ class TestWorkshopJobCard(TransactionCase):
 
         total = len(wizard.line_ids)
         while wizard.current_line_id and not card.inspection_ids:
-            wizard.action_answer_yes()
+            option = wizard.current_line_id.result_type_id.option_ids.filtered(
+                lambda result: result.active and result.is_positive
+            )[:1]
+            wizard.current_result_option_id = option.id
+            wizard.action_answer_selected()
 
         inspection = card._get_latest_inspection("customer_check")
         self.assertEqual(inspection.state, "completed")
@@ -441,7 +457,11 @@ class TestWorkshopJobCard(TransactionCase):
         wizard = self._wizard_from_action(card.action_customer_check())
         original_name = wizard.current_checkpoint_name
         while wizard.current_line_id:
-            wizard.action_answer_yes()
+            option = wizard.current_line_id.result_type_id.option_ids.filtered(
+                lambda result: result.active and result.is_positive
+            )[:1]
+            wizard.current_result_option_id = option.id
+            wizard.action_answer_selected()
         inspection = card._get_latest_inspection("customer_check")
         first_history_line = inspection.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
 
@@ -474,11 +494,8 @@ class TestWorkshopJobCard(TransactionCase):
         card.action_create_repair_order()
         repair = card.repair_order_id
 
-        with self.assertRaisesRegex(ValidationError, "Complete the Delivery Check before finishing"):
-            repair.action_repair_done()
-
-        first_action = repair.action_delivery_inspection()
-        second_action = repair.action_delivery_inspection()
+        first_action = repair.action_repair_done()
+        second_action = repair.action_repair_done()
         self.assertEqual(first_action["res_model"], second_action["res_model"])
 
         delivery = self._complete_inspection_action(first_action)

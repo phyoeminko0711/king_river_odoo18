@@ -1,4 +1,5 @@
 from . import job_card
+from . import inspection_result
 from . import inspection_template
 from . import job_card_inspection
 from . import job_card_line

@@ -14,6 +14,8 @@ class WorkshopJobCard(models.Model):
         "vehicle_id",
         "mileage",
         "technician_id",
+        "testing_driver_id",
+        "assistant_technician_id",
         "complaint",
         "diagnosis",
         "recommendation",
@@ -106,6 +108,19 @@ class WorkshopJobCard(models.Model):
         index=True,
         ondelete="restrict",
         tracking=True,
+        check_company=True,
+    )
+    testing_driver_id = fields.Many2one(
+        "hr.employee",
+        string="Testing Driver",
+        tracking=True,
+        check_company=True,
+    )
+    assistant_technician_id = fields.Many2one(
+        "hr.employee",
+        string="Assistant Technician",
+        tracking=True,
+        check_company=True,
     )
     technician_job_id = fields.Many2one(
         related="technician_id.job_id",
@@ -327,6 +342,27 @@ class WorkshopJobCard(models.Model):
     def _check_mileage(self):
         if any(card.mileage < 0 for card in self):
             raise ValidationError(_("Mileage cannot be negative."))
+
+    @api.constrains("technician_id", "assistant_technician_id", "testing_driver_id")
+    def _check_unique_employee_roles(self):
+        for card in self:
+            employees = (
+                card.technician_id
+                | card.assistant_technician_id
+                | card.testing_driver_id
+            )
+            selected_count = sum(
+                bool(employee)
+                for employee in (
+                    card.technician_id,
+                    card.assistant_technician_id,
+                    card.testing_driver_id,
+                )
+            )
+            if len(employees) != selected_count:
+                raise ValidationError(
+                    _("Technician, Assistant Technician, and Testing Driver must be different employees.")
+                )
 
     def _ensure_state(self, *allowed_states):
         self.ensure_one()
@@ -564,6 +600,9 @@ class WorkshopJobCard(models.Model):
                 "schedule_date": self.job_card_date,
                 "job_card_id": self.id,
                 "customer_vehicle_id": self.vehicle_id.id,
+                "technician_id": self.technician_id.id,
+                "testing_driver_id": self.testing_driver_id.id,
+                "assistant_technician_id": self.assistant_technician_id.id,
             }
         )
         self.env["stock.move"].create(

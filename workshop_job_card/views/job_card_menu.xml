@@ -22,12 +22,32 @@
               groups="base.group_system"
               sequence="5"/>
 
-    <menuitem id="menu_workshop_inspection_template"
-              name="Inspection Templates"
+    <menuitem id="menu_workshop_inspection_config"
+              name="Inspection"
               parent="repair.repair_menu_config"
-              action="action_workshop_inspection_template"
               groups="workshop_job_card.group_workshop_manager,base.group_system"
               sequence="15"/>
+
+    <menuitem id="menu_workshop_inspection_result_type"
+              name="Result Types"
+              parent="menu_workshop_inspection_config"
+              action="action_workshop_inspection_result_type"
+              groups="workshop_job_card.group_workshop_manager,base.group_system"
+              sequence="10"/>
+
+    <menuitem id="menu_workshop_inspection_result_option"
+              name="Result Options"
+              parent="menu_workshop_inspection_config"
+              action="action_workshop_inspection_result_option"
+              groups="workshop_job_card.group_workshop_manager,base.group_system"
+              sequence="20"/>
+
+    <menuitem id="menu_workshop_inspection_template"
+              name="Inspection Templates"
+              parent="menu_workshop_inspection_config"
+              action="action_workshop_inspection_template"
+              groups="workshop_job_card.group_workshop_manager,base.group_system"
+              sequence="30"/>
 
     <menuitem id="menu_workshop_inspections"
               name="Inspections"

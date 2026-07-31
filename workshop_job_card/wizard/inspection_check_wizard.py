@@ -42,10 +42,17 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
         related="current_line_id.description",
         readonly=True,
     )
+    current_option_ids = fields.Many2many(
+        "workshop.inspection.result.option",
+        string="Available Results",
+        compute="_compute_current_options",
+    )
+    current_result_option_id = fields.Many2one(
+        "workshop.inspection.result.option",
+        string="Result",
+        domain="[('id', 'in', current_option_ids)]",
+    )
     current_remark = fields.Char(string="Remark")
-    yes_count = fields.Integer(compute="_compute_progress")
-    no_count = fields.Integer(compute="_compute_progress")
-    all_checkpoints_answered = fields.Boolean(compute="_compute_progress")
     can_go_previous = fields.Boolean(compute="_compute_progress")
 
     @api.model_create_multi
@@ -73,9 +80,10 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
                         "sequence": line.sequence,
                         "checkpoint_name": line.description,
                         "description": line.description,
-                        "result": False,
+                        "result_type_id": line.result_type_id.id,
+                        "result_option_id": False,
+                        "default_result_option_id": line.default_result_option_id.id,
                         "required": line.required,
-                        "remark_required_when_no": line.remark_required_when_no,
                     }
                     for line in template_lines
                 ]
@@ -87,9 +95,15 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
         if not first_line:
             raise ValidationError(_("The inspection template has no active checkpoints."))
         self.current_line_id = first_line.id
+        self.current_result_option_id = first_line.result_option_id.id or first_line.default_result_option_id.id
         self.current_remark = first_line.remark or False
 
-    @api.depends("line_ids.result", "line_ids.sequence", "current_line_id")
+    @api.depends("current_line_id.result_type_id.option_ids.active")
+    def _compute_current_options(self):
+        for wizard in self:
+            wizard.current_option_ids = wizard.current_line_id.result_type_id.option_ids.filtered("active")
+
+    @api.depends("line_ids.result_option_id", "line_ids.sequence", "current_line_id")
     def _compute_progress(self):
         for wizard in self:
             lines = wizard.line_ids.sorted(lambda line: (line.sequence, line.id))
@@ -99,10 +113,6 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
                 if wizard.current_line_id and wizard.current_line_id.id in lines.ids
                 else 0
             )
-            wizard.yes_count = len(lines.filtered(lambda line: line.result == "yes"))
-            wizard.no_count = len(lines.filtered(lambda line: line.result == "no"))
-            answered_count = wizard.yes_count + wizard.no_count
-            wizard.all_checkpoints_answered = bool(lines) and answered_count == len(lines)
             wizard.can_go_previous = wizard.current_checkpoint_number > 1
             wizard.progress_text = _("Checkpoint %(current)s of %(total)s") % (
                 {
@@ -128,15 +138,19 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
             "target": "new",
         }
 
-    def _save_current_answer(self, result):
+    def _save_current_answer(self):
         self.ensure_one()
         if not self.current_line_id:
             raise UserError(_("There is no current checkpoint to answer."))
-        if result == "no" and self.current_line_id.remark_required_when_no and not self.current_remark:
-            raise ValidationError(_("Please enter a remark before marking this checkpoint as No."))
+        if not self.current_result_option_id:
+            raise ValidationError(_("Please select a result for this checkpoint."))
+        if self.current_result_option_id.result_type_id != self.current_line_id.result_type_id:
+            raise ValidationError(_("Selected result is not valid for this checkpoint."))
+        # if self.current_result_option_id.requires_remark and not self.current_remark:
+        #     raise ValidationError(_("Please enter a remark for this result."))
         self.current_line_id.write(
             {
-                "result": result,
+                "result_option_id": self.current_result_option_id.id,
                 "remark": self.current_remark,
             }
         )
@@ -150,20 +164,15 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
         if current_index + 1 < len(ordered_lines):
             next_line = ordered_lines[current_index + 1]
             self.current_line_id = next_line.id
+            self.current_result_option_id = next_line.result_option_id.id or next_line.default_result_option_id.id
             self.current_remark = next_line.remark or False
             return self._reopen_same_wizard()
         return self._finalize_and_close()
 
-    def _answer_current_checkpoint(self, result):
+    def action_answer_selected(self):
         self.ensure_one()
-        self._save_current_answer(result)
+        self._save_current_answer()
         return self._move_next_or_complete()
-
-    def action_answer_yes(self):
-        return self._answer_current_checkpoint("yes")
-
-    def action_answer_no(self):
-        return self._answer_current_checkpoint("no")
 
     def action_previous_checkpoint(self):
         self.ensure_one()
@@ -175,6 +184,7 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
             if current_index > 0:
                 previous_line = ordered_lines[current_index - 1]
                 self.current_line_id = previous_line.id
+                self.current_result_option_id = previous_line.result_option_id.id or previous_line.default_result_option_id.id
                 self.current_remark = previous_line.remark or False
         return self._reopen_same_wizard()
 
@@ -192,16 +202,15 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
             )
             if completed:
                 raise UserError(_("This inspection has already been completed for the Job Card."))
-            missing_results = wizard.line_ids.filtered(lambda line: not line.result)
+            missing_results = wizard.line_ids.filtered(lambda line: not line.result_option_id)
             if missing_results:
-                raise ValidationError(_("Every checkpoint must have a Yes or No result."))
-            missing_remarks = wizard.line_ids.filtered(
-                lambda line: line.result == "no"
-                and line.remark_required_when_no
-                and not line.remark
-            )
-            if missing_remarks:
-                raise ValidationError(_("Please enter a remark for checkpoints marked No."))
+                raise ValidationError(_("Every checkpoint must have a result."))
+            # missing_remarks = wizard.line_ids.filtered(
+            #     lambda line: line.result_option_id.requires_remark
+            #     and not line.remark
+            # )
+            # if missing_remarks:
+            #     raise ValidationError(_("Remarks are required for some selected results."))
 
     def _finalize_inspection(self):
         self.ensure_one()
@@ -231,7 +240,8 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
                             "sequence": line.sequence,
                             "description": line.checkpoint_name,
                             "checkpoint_name": line.checkpoint_name,
-                            "result": line.result,
+                            "result_option_id": line.result_option_id.id,
+                            "result_name": line.result_option_id.name,
                             "remark": line.remark,
                         },
                     )
@@ -264,20 +274,30 @@ class WorkshopInspectionCheckWizardLine(models.TransientModel):
     )
     sequence = fields.Integer(default=10)
     checkpoint_name = fields.Char(required=True, readonly=True)
-    result = fields.Selection(
-        [
-            ("yes", "Yes"),
-            ("no", "No"),
-        ],
-        string="Result",
+    result_type_id = fields.Many2one(
+        "workshop.inspection.result.type",
+        required=True,
+        readonly=True,
+        ondelete="cascade",
     )
+    result_option_id = fields.Many2one(
+        "workshop.inspection.result.option",
+        string="Result",
+        domain="[('result_type_id', '=', result_type_id), ('active', '=', True)]",
+        ondelete="set null",
+    )
+    default_result_option_id = fields.Many2one(
+        "workshop.inspection.result.option",
+        readonly=True,
+        ondelete="set null",
+    )
+    result_name = fields.Char(related="result_option_id.name")
     description = fields.Text(readonly=True)
     remark = fields.Char()
     required = fields.Boolean(readonly=True)
-    remark_required_when_no = fields.Boolean(readonly=True)
     is_answered = fields.Boolean(compute="_compute_is_answered", store=True)
 
-    @api.depends("result")
+    @api.depends("result_option_id")
     def _compute_is_answered(self):
         for line in self:
-            line.is_answered = line.result in ("yes", "no")
+            line.is_answered = bool(line.result_option_id)

@@ -20,51 +20,50 @@
 
     <function model="workshop.inspection.template.line" name="create">
         <value eval="[
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 10, 'description': 'Windshield', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 20, 'description': 'Side Mirror', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 30, 'description': 'Head Lamp', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 40, 'description': 'Tail Lamp', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 50, 'description': 'Tire Condition', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 60, 'description': 'Wheel Nut', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 70, 'description': 'Fuel Level', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 80, 'description': 'Scratch', 'default_result': 'no', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 90, 'description': 'Dent', 'default_result': 'no', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 100, 'description': 'Tool Kit', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 110, 'description': 'Spare Tire', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 120, 'description': 'Jack', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 130, 'description': 'Audio', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 140, 'description': 'Dash Camera', 'default_result': 'no', 'required': True},
-            {'template_id': ref('inspection_template_customer_check'), 'sequence': 150, 'description': 'Customer Belongings', 'default_result': 'no', 'required': True, 'remark_required': True}
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 10, 'description': 'Windshield', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 20, 'description': 'Side Mirror', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 30, 'description': 'Head Lamp', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 40, 'description': 'Tail Lamp', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 50, 'description': 'Tire Condition', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 60, 'description': 'Wheel Nut', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 70, 'description': 'Fuel Level', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 80, 'description': 'Scratch', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 90, 'description': 'Dent', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 100, 'description': 'Tool Kit', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 110, 'description': 'Spare Tire', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 120, 'description': 'Jack', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 130, 'description': 'Audio', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 140, 'description': 'Dash Camera', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True},
+            {'template_id': ref('inspection_template_customer_check'), 'sequence': 150, 'description': 'Customer Belongings', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True}
         ]"/>
     </function>
 
     <function model="workshop.inspection.template.line" name="create">
         <value eval="[
-            {'template_id': ref('inspection_template_technician'), 'sequence': 10, 'description': 'Engine Oil', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 20, 'description': 'Brake Oil', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 30, 'description': 'Coolant', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 40, 'description': 'Battery', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 50, 'description': 'Suspension', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 60, 'description': 'Brake System', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 70, 'description': 'Steering', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 80, 'description': 'Air Conditioner', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 90, 'description': 'OBD Scan', 'default_result': 'no', 'required': True, 'remark_required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 100, 'description': 'Engine Noise', 'default_result': 'no', 'required': True},
-            {'template_id': ref('inspection_template_technician'), 'sequence': 110, 'description': 'Leakage', 'default_result': 'no', 'required': True}
+            {'template_id': ref('inspection_template_technician'), 'sequence': 10, 'description': 'Engine Oil', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 20, 'description': 'Brake Oil', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 30, 'description': 'Coolant', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 40, 'description': 'Battery', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 50, 'description': 'Suspension', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 60, 'description': 'Brake System', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 70, 'description': 'Steering', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 80, 'description': 'Air Conditioner', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 90, 'description': 'OBD Scan', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 100, 'description': 'Engine Noise', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True},
+            {'template_id': ref('inspection_template_technician'), 'sequence': 110, 'description': 'Leakage', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_no'), 'required': True}
         ]"/>
     </function>
 
     <function model="workshop.inspection.template.line" name="create">
         <value eval="[
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 10, 'description': 'Fluid Levels', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 20, 'description': 'Dashboard Warning Lights', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 30, 'description': 'Body Damage', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 40, 'description': 'Accessories', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 50, 'description': 'Customer Belongings', 'default_result': 'yes', 'required': True, 'remark_required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 60, 'description': 'Cleanliness', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 70, 'description': 'Road Test', 'default_result': 'yes', 'required': True},
-            {'template_id': ref('inspection_template_delivery'), 'sequence': 80, 'description': 'Brake Test', 'default_result': 'yes', 'required': True}
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 10, 'description': 'Fluid Levels', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 20, 'description': 'Dashboard Warning Lights', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 30, 'description': 'Body Damage', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 40, 'description': 'Accessories', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 50, 'description': 'Customer Belongings', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 60, 'description': 'Cleanliness', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 70, 'description': 'Road Test', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True},
+            {'template_id': ref('inspection_template_delivery'), 'sequence': 80, 'description': 'Brake Test', 'result_type_id': ref('inspection_result_type_yes_no'), 'default_result_option_id': ref('inspection_result_option_yes'), 'required': True}
         ]"/>
     </function>
 </odoo>
-

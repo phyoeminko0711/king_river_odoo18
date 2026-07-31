@@ -1,6 +1,6 @@
 {
     "name": "Workshop Job Card",
-    "version": "18.0.1.17.0",
+    "version": "18.0.1.18.0",
     "summary": "Customer Job Cards integrated with Repair Orders",
     "category": "Repair/Operations",
     "author": "dev_pmk",
@@ -17,8 +17,10 @@
         "security/job_card_security.xml",
         "security/ir.model.access.csv",
         "data/job_card_sequence.xml",
+        "data/inspection_result_data.xml",
         "data/inspection_template_data.xml",
         "views/repair_service_views.xml",
+        "views/inspection_result_views.xml",
         "views/inspection_template_views.xml",
         "views/job_card_inspection_views.xml",
         "wizard/add_repair_service_wizard_views.xml",

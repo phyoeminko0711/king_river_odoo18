@@ -52,11 +52,13 @@
                         <page string="Checklist">
                             <field name="line_ids" readonly="1">
                                 <list create="0" edit="0" delete="0"
-                                      decoration-success="result == 'yes'"
-                                      decoration-danger="result == 'no'">
+                                      decoration-success="result_is_positive"
+                                      decoration-danger="result_option_id and not result_is_positive">
                                     <field name="sequence" widget="handle"/>
                                     <field name="checkpoint_name" string="Checkpoint"/>
-                                    <field name="result" widget="badge"/>
+                                    <field name="result_name" string="Result" widget="badge"/>
+                                    <field name="result_option_id" column_invisible="True"/>
+                                    <field name="result_is_positive" column_invisible="True"/>
                                     <field name="remark"/>
                                     <field name="required" column_invisible="True"/>
                                     <field name="remark_required" column_invisible="True"/>

@@ -21,6 +21,24 @@ class RepairOrder(models.Model):
         ondelete="restrict",
         index=True,
     )
+    technician_id = fields.Many2one(
+        "hr.employee",
+        string="Technician",
+        tracking=True,
+        check_company=True,
+    )
+    testing_driver_id = fields.Many2one(
+        "hr.employee",
+        string="Testing Driver",
+        tracking=True,
+        check_company=True,
+    )
+    assistant_technician_id = fields.Many2one(
+        "hr.employee",
+        string="Assistant Technician",
+        tracking=True,
+        check_company=True,
+    )
     # Upgrade compatibility for the first module version. Its inherited Repair
     # view referenced ``vehicle_id`` and can still be present until an upgrade
     # finishes obsolete-record cleanup. Keep this alias out of current views.
@@ -48,6 +66,27 @@ class RepairOrder(models.Model):
             "Only one Repair Order can be created for a Job Card.",
         )
     ]
+
+    @api.constrains("technician_id", "assistant_technician_id", "testing_driver_id")
+    def _check_unique_employee_roles(self):
+        for repair in self:
+            employees = (
+                repair.technician_id
+                | repair.assistant_technician_id
+                | repair.testing_driver_id
+            )
+            selected_count = sum(
+                bool(employee)
+                for employee in (
+                    repair.technician_id,
+                    repair.assistant_technician_id,
+                    repair.testing_driver_id,
+                )
+            )
+            if len(employees) != selected_count:
+                raise ValidationError(
+                    _("Technician, Assistant Technician, and Testing Driver must be different employees.")
+                )
 
     def action_view_job_card(self):
         self.ensure_one()
@@ -100,7 +139,7 @@ class RepairOrder(models.Model):
     def action_repair_done(self):
         for repair in self:
             if repair.job_card_id and not repair.job_card_id._has_completed_inspection("delivery_inspection"):
-                raise ValidationError(_("Complete the Delivery Check before finishing the Repair Order."))
+                return repair.action_delivery_inspection()
         result = super().action_repair_done()
         for repair in self.filtered("job_card_id"):
             repair.job_card_id._workflow_write({"state": "repair_completed"})

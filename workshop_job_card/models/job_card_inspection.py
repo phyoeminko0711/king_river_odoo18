@@ -177,27 +177,33 @@ class WorkshopJobCardInspection(models.Model):
     def _copy_template_lines(self):
         for inspection in self:
             template_lines = inspection.template_id.line_ids.filtered("active")
-            inspection.line_ids = [
-                (
-                    0,
-                    0,
-                    {
-                        "sequence": line.sequence,
-                        "description": line.description,
-                        "checkpoint_name": line.description,
-                        "result": line.default_result or "yes",
-                        "required": line.required,
-                        "remark_required": line.remark_required_when_no,
-                    },
+            line_commands = []
+            for line in template_lines:
+                option = line.default_result_option_id or line.result_type_id.option_ids.filtered("active")[:1]
+                if not option:
+                    continue
+                line_commands.append(
+                    (
+                        0,
+                        0,
+                        {
+                            "sequence": line.sequence,
+                            "description": line.description,
+                            "checkpoint_name": line.description,
+                            "result_option_id": option.id,
+                            "result_name": option.name,
+                            "required": line.required,
+                            "remark_required": option.requires_remark,
+                        },
+                    )
                 )
-                for line in template_lines
-            ]
+            inspection.line_ids = line_commands
 
     def _validate_before_complete(self):
         for inspection in self:
             if not inspection.inspector_id:
                 raise ValidationError(_("Inspector is required before completing the inspection."))
-            missing_required = inspection.line_ids.filtered(lambda line: line.required and not line.result)
+            missing_required = inspection.line_ids.filtered(lambda line: line.required and not line.result_name)
             if missing_required:
                 raise ValidationError(_("All required inspection lines must have a result before completion."))
             missing_remarks = inspection.line_ids.filtered(lambda line: line.remark_required and not line.remark)
@@ -238,14 +244,20 @@ class WorkshopJobCardInspectionLine(models.Model):
     sequence = fields.Integer(default=10)
     description = fields.Char(required=True)
     checkpoint_name = fields.Char(string="Checkpoint", related="description", readonly=False)
-    result = fields.Selection(
-        [
-            ("yes", "Yes"),
-            ("no", "No"),
-        ],
-        required=True,
-        default="yes",
+    result_option_id = fields.Many2one(
+        "workshop.inspection.result.option",
+        string="Result Option",
+        readonly=True,
+        copy=False,
+        ondelete="restrict",
     )
+    result_name = fields.Char(
+        string="Result",
+        required=True,
+        copy=False,
+    )
+    result = fields.Char(string="Result", related="result_name", readonly=True)
+    result_is_positive = fields.Boolean(related="result_option_id.is_positive", readonly=True)
     remark = fields.Char()
     required = fields.Boolean(readonly=True)
     remark_required = fields.Boolean(readonly=True)
@@ -254,12 +266,9 @@ class WorkshopJobCardInspectionLine(models.Model):
         self.env.cr.execute(
             """
             UPDATE workshop_job_card_inspection_line
-               SET result = CASE
-                   WHEN result = 'ok' THEN 'yes'
-                   WHEN result IN ('ng', 'na') THEN 'no'
-                   ELSE result
-               END
-             WHERE result IN ('ok', 'ng', 'na')
+               SET result_name = COALESCE(result_name, result)
+             WHERE result_name IS NULL
+               AND result IS NOT NULL
             """
         )
 
