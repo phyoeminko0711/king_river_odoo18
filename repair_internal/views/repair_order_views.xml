@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_repair_order_form_internal_invoice" model="ir.ui.view">
+        <field name="name">repair.order.form.internal.invoice</field>
+        <field name="model">repair.order</field>
+        <field name="inherit_id" ref="repair.view_repair_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_create_sale_order']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='action_create_sale_order']" position="after">
+                <button name="action_create_invoice"
+                        type="object"
+                        string="Create Invoice"
+                        class="oe_highlight"
+                        groups="account.group_account_invoice"
+                        invisible="state != 'done' or not delivery_inspection_completed or not partner_id or invoice_count != 0"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_invoices"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-pencil-square-o"
+                        invisible="invoice_count == 0">
+                    <field name="invoice_count" widget="statinfo" string="Invoices"/>
+                </button>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <field name="invoice_count" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
