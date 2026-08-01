@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_sale_team_under_customer" model="ir.ui.view">
+        <field name="name">sale.order.form.sale.team.under.customer</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='sales_person']/field[@name='team_id']" position="replace"/>
+            <field name="partner_id" position="after">
+                <field name="team_id"
+                       context="{'kanban_view_ref': 'sales_team.crm_team_view_kanban'}"
+                       options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+</odoo>
