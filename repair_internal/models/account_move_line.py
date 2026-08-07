@@ -12,3 +12,11 @@ class AccountMoveLine(models.Model):
         index=True,
         ondelete="restrict",
     )
+    repair_charge_line_id = fields.Many2one(
+        "workshop.repair.charge.line",
+        string="Repair Service Charge",
+        readonly=True,
+        copy=False,
+        index=True,
+        ondelete="restrict",
+    )

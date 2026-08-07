@@ -92,17 +92,17 @@
                                    'default_customer_id': customer_id,
                                    'form_view_ref': 'workshop_customer_vehicle.view_customer_vehicle_form'
                                }"
-                                                           options="{
+                                   options="{
                                    'no_create': false,
                                    'no_create_edit': false,
                                    'no_open': false
                                }"
-                               readonly="state != 'draft'"
+                                   readonly="state != 'draft'"
                             />
-<!--                            <field name="vehicle_id"-->
-<!--                                   domain="[('customer_id', '=', customer_id)]"-->
-<!--                                   options="{'no_create': True}"-->
-<!--                                   readonly="state != 'draft'"/>-->
+                            <!--                            <field name="vehicle_id"-->
+                            <!--                                   domain="[('customer_id', '=', customer_id)]"-->
+                            <!--                                   options="{'no_create': True}"-->
+                            <!--                                   readonly="state != 'draft'"/>-->
                             <field name="plate_no"/>
                             <field name="mileage" readonly="state != 'draft'"/>
                             <field name="vehicle_brand_id"/>
@@ -170,6 +170,10 @@
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
+                                <field name="labour_cost" readonly="state not in ['draft', 'sent']"
+                                       options="{'currency_field': 'currency_id'}"/>
+                                <field name="service_cost" readonly="state not in ['draft', 'sent']"
+                                       options="{'currency_field': 'currency_id'}"/>
                                 <field name="total_amount" readonly="1"/>
                                 <field name="currency_id" invisible="1"/>
                             </group>

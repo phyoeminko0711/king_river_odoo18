@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="payment_channel_kpay" model="account.payment.channel">
+        <field name="name">KPay</field>
+        <field name="code">KPAY</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="payment_channel_mmqr" model="account.payment.channel">
+        <field name="name">MMQR</field>
+        <field name="code">MMQR</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="payment_channel_wave_pay" model="account.payment.channel">
+        <field name="name">Wave Pay</field>
+        <field name="code">WAVE</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="payment_channel_kbz_banking" model="account.payment.channel">
+        <field name="name">KBZ Banking</field>
+        <field name="code">KBZBANK</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="payment_channel_aya_pay" model="account.payment.channel">
+        <field name="name">AYA Pay</field>
+        <field name="code">AYAPAY</field>
+        <field name="sequence">50</field>
+    </record>
+    <record id="payment_channel_aya_banking" model="account.payment.channel">
+        <field name="name">AYA Banking</field>
+        <field name="code">AYABANK</field>
+        <field name="sequence">60</field>
+    </record>
+    <record id="payment_channel_cb_pay" model="account.payment.channel">
+        <field name="name">CB Pay</field>
+        <field name="code">CBPAY</field>
+        <field name="sequence">70</field>
+    </record>
+    <record id="payment_channel_cb_bank" model="account.payment.channel">
+        <field name="name">CB Bank</field>
+        <field name="code">CBBANK</field>
+        <field name="sequence">80</field>
+    </record>
+    <record id="payment_channel_yoma" model="account.payment.channel">
+        <field name="name">YOMA</field>
+        <field name="code">YOMA</field>
+        <field name="sequence">90</field>
+    </record>
+</odoo>

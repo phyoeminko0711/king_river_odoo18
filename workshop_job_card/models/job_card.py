@@ -21,6 +21,8 @@ class WorkshopJobCard(models.Model):
         "recommendation",
         "service_line_ids",
         "line_ids",
+        "labour_cost",
+        "service_cost",
         "currency_id",
     }
     _WORKFLOW_FIELDS = {
@@ -163,6 +165,18 @@ class WorkshopJobCard(models.Model):
         compute="_compute_total_amount",
         store=True,
         currency_field="currency_id",
+    )
+    labour_cost = fields.Monetary(
+        string="Labour Cost",
+        default=0.0,
+        currency_field="currency_id",
+        tracking=True,
+    )
+    service_cost = fields.Monetary(
+        string="Service Cost",
+        default=0.0,
+        currency_field="currency_id",
+        tracking=True,
     )
     state = fields.Selection(
         [
@@ -343,6 +357,14 @@ class WorkshopJobCard(models.Model):
         if any(card.mileage < 0 for card in self):
             raise ValidationError(_("Mileage cannot be negative."))
 
+    @api.constrains("labour_cost", "service_cost")
+    def _check_service_amounts(self):
+        for card in self:
+            if card.labour_cost < 0:
+                raise ValidationError(_("Labour Cost must be greater than or equal to zero."))
+            if card.service_cost < 0:
+                raise ValidationError(_("Service Cost must be greater than or equal to zero."))
+
     @api.constrains("technician_id", "assistant_technician_id", "testing_driver_id")
     def _check_unique_employee_roles(self):
         for card in self:
@@ -510,6 +532,58 @@ class WorkshopJobCard(models.Model):
             % service_names
         )
 
+    def _get_single_repair_charge_product(self, flag_field):
+        self.ensure_one()
+        product_domain = [
+            ("active", "=", True),
+            ("product_tmpl_id.active", "=", True),
+            ("type", "=", "service"),
+            ("product_tmpl_id.%s" % flag_field, "=", True),
+        ]
+        products = self.env["product.product"].search(product_domain)
+        if flag_field == "is_labour_cost":
+            if not products:
+                raise ValidationError(_("No Labour Cost service product is configured."))
+            if len(products) > 1:
+                raise ValidationError(_("Only one active Labour Cost service product may be configured."))
+        else:
+            if not products:
+                raise ValidationError(_("No Workshop Service Product is configured."))
+            if len(products) > 1:
+                raise ValidationError(_("Only one active Workshop Service Product may be configured."))
+        return products
+
+    def _prepare_repair_charge_line_vals(self, repair, product, amount, charge_type, sequence):
+        self.ensure_one()
+        return {
+            "sequence": sequence,
+            "repair_id": repair.id,
+            "charge_type": charge_type,
+            "product_id": product.id,
+            "product_uom_qty": 1.0,
+            "product_uom_id": product.uom_id.id,
+            "price_unit": amount,
+        }
+
+    def _prepare_repair_charge_lines(self, repair):
+        self.ensure_one()
+        charge_vals = []
+        if self.labour_cost > 0:
+            labour_product = self._get_single_repair_charge_product("is_labour_cost")
+            charge_vals.append(
+                self._prepare_repair_charge_line_vals(
+                    repair, labour_product, self.labour_cost, "labour", 10
+                )
+            )
+        if self.service_cost > 0:
+            service_product = self._get_single_repair_charge_product("is_workshop_service")
+            charge_vals.append(
+                self._prepare_repair_charge_line_vals(
+                    repair, service_product, self.service_cost, "service", 20
+                )
+            )
+        return charge_vals
+
     def action_send_to_customer(self):
         self._ensure_state("draft")
         if not (
@@ -620,6 +694,9 @@ class WorkshopJobCard(models.Model):
                 for line in selected_lines
             ]
         )
+        charge_vals = self._prepare_repair_charge_lines(repair)
+        if charge_vals:
+            self.env["workshop.repair.charge.line"].create(charge_vals)
         self._workflow_write(
             {"repair_order_id": repair.id, "state": "repair_created"}
         )

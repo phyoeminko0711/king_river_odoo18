@@ -38,6 +38,22 @@
                 <field name="testing_driver_id"
                        domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [technician_id, assistant_technician_id])]"/>
             </field>
+            <xpath expr="//page[@name='parts']" position="after">
+                <page string="Service Charges" name="workshop_service_charges">
+                    <field name="repair_charge_line_ids"
+                           readonly="1">
+                        <list create="0" edit="0" delete="0">
+                            <field name="sequence" column_invisible="True"/>
+                            <field name="charge_type"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="product_uom_qty" readonly="1"/>
+                            <field name="product_uom_id" readonly="1"/>
+                            <field name="price_unit" readonly="1"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
         </field>
     </record>
 

@@ -52,9 +52,31 @@ class RepairOrder(models.Model):
             > 0
         )
 
-    def _prepare_repair_invoice_line_vals(self, move, fiscal_position):
+    def _get_invoiceable_repair_charge_lines(self):
         self.ensure_one()
-        product = move.product_id.with_company(self.company_id)
+        invoiced_charge_line_ids = self.env["account.move.line"].search(
+            [
+                ("repair_charge_line_id", "in", self.repair_charge_line_ids.ids),
+                ("move_id.move_type", "=", "out_invoice"),
+                ("move_id.state", "!=", "cancel"),
+            ]
+        ).repair_charge_line_id.ids
+        return self.repair_charge_line_ids.filtered(
+            lambda line: line.product_id
+            and line.id not in invoiced_charge_line_ids
+            and float_compare(
+                line.product_uom_qty,
+                0.0,
+                precision_rounding=line.product_uom_id.rounding,
+            )
+            > 0
+        )
+
+    def _prepare_product_invoice_line_vals(
+        self, product, quantity, uom, price_unit, fiscal_position, extra_vals=None
+    ):
+        self.ensure_one()
+        product = product.with_company(self.company_id)
         accounts = product.product_tmpl_id.get_product_accounts(fiscal_pos=fiscal_position)
         income_account = accounts.get("income")
         if not income_account:
@@ -65,23 +87,61 @@ class RepairOrder(models.Model):
         taxes = product.taxes_id._filter_taxes_by_company(self.company_id)
         if fiscal_position:
             taxes = fiscal_position.map_tax(taxes)
-        name = product.get_product_multiline_description_sale() or move.name or product.display_name
-        return {
+        name = product.get_product_multiline_description_sale() or product.display_name
+        vals = {
             "product_id": product.id,
             "name": name,
-            "quantity": move.product_uom_qty,
-            "product_uom_id": move.product_uom.id,
-            "price_unit": move.price_unit,
+            "quantity": quantity,
+            "product_uom_id": uom.id,
+            "price_unit": price_unit,
             "tax_ids": [(6, 0, taxes.ids)],
             "account_id": income_account.id,
-            "repair_move_id": move.id,
         }
+        if extra_vals:
+            vals.update(extra_vals)
+        return vals
 
-    def _prepare_repair_invoice_vals(self, repair_moves):
+    def _prepare_repair_invoice_line_vals(self, move, fiscal_position):
+        vals = self._prepare_product_invoice_line_vals(
+            move.product_id,
+            move.product_uom_qty,
+            move.product_uom,
+            move.price_unit,
+            fiscal_position,
+            {"repair_move_id": move.id},
+        )
+        if move.name:
+            vals["name"] = vals["name"] or move.name
+        return vals
+
+    def _prepare_repair_charge_invoice_line_vals(self, charge_line, fiscal_position):
+        return self._prepare_product_invoice_line_vals(
+            charge_line.product_id,
+            charge_line.product_uom_qty,
+            charge_line.product_uom_id,
+            charge_line.price_unit,
+            fiscal_position,
+            {
+                "repair_charge_line_id": charge_line.id,
+            },
+        )
+
+    def _prepare_repair_invoice_vals(self, repair_moves, repair_charge_lines=None):
         self.ensure_one()
+        repair_charge_lines = repair_charge_lines or self.env["workshop.repair.charge.line"]
         fiscal_position = self.env["account.fiscal.position"].with_company(
             self.company_id
         )._get_fiscal_position(self.partner_id)
+        invoice_lines = [
+            (0, 0, self._prepare_repair_invoice_line_vals(move, fiscal_position))
+            for move in repair_moves
+        ]
+        invoice_lines.extend(
+            [
+                (0, 0, self._prepare_repair_charge_invoice_line_vals(line, fiscal_position))
+                for line in repair_charge_lines
+            ]
+        )
         return {
             "move_type": "out_invoice",
             "partner_id": self.partner_id.id,
@@ -91,10 +151,7 @@ class RepairOrder(models.Model):
             "company_id": self.company_id.id,
             "currency_id": self.company_id.currency_id.id,
             "fiscal_position_id": fiscal_position.id,
-            "invoice_line_ids": [
-                (0, 0, self._prepare_repair_invoice_line_vals(move, fiscal_position))
-                for move in repair_moves
-            ],
+            "invoice_line_ids": invoice_lines,
         }
 
     def _validate_repair_invoice_creation(self):
@@ -112,18 +169,19 @@ class RepairOrder(models.Model):
         if self._get_active_customer_invoices():
             raise ValidationError(_("A Customer Invoice already exists for this Repair Order."))
         repair_moves = self._get_invoiceable_repair_moves()
-        if not repair_moves:
+        repair_charge_lines = self._get_invoiceable_repair_charge_lines()
+        if not repair_moves and not repair_charge_lines:
             raise ValidationError(_("There are no invoiceable Repair lines."))
-        return repair_moves
+        return repair_moves, repair_charge_lines
 
     def action_create_invoice(self):
         self.ensure_one()
         existing_invoice = self._get_active_customer_invoices()[:1]
         if existing_invoice:
             return existing_invoice._get_records_action()
-        repair_moves = self._validate_repair_invoice_creation()
+        repair_moves, repair_charge_lines = self._validate_repair_invoice_creation()
         invoice = self.env["account.move"].create(
-            self._prepare_repair_invoice_vals(repair_moves)
+            self._prepare_repair_invoice_vals(repair_moves, repair_charge_lines)
         )
         self.message_post(
             body=_(
