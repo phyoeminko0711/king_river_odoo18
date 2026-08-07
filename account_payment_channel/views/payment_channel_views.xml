@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_payment_channel_list" model="ir.ui.view">
+        <field name="name">account.payment.channel.list</field>
+        <field name="model">account.payment.channel</field>
+        <field name="arch" type="xml">
+            <list string="Payment Channels">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_account_payment_channel_form" model="ir.ui.view">
+        <field name="name">account.payment.channel.form</field>
+        <field name="model">account.payment.channel</field>
+        <field name="arch" type="xml">
+            <form string="Payment Channel">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. KPay"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Notes" name="notes">
+                            <field name="note" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_account_payment_channel_search" model="ir.ui.view">
+        <field name="name">account.payment.channel.search</field>
+        <field name="model">account.payment.channel</field>
+        <field name="arch" type="xml">
+            <search string="Search Payment Channels">
+                <field name="name"/>
+                <field name="code"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_account_payment_channel" model="ir.actions.act_window">
+        <field name="name">Payment Channels</field>
+        <field name="res_model">account.payment.channel</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_account_payment_channel_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create a Payment Channel</p>
+            <p>Use payment channels to classify cash and bank journals for reporting.</p>
+        </field>
+    </record>
+</odoo>

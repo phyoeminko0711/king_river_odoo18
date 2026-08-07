@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_journal_form_payment_channel" model="ir.ui.view">
+        <field name="name">account.journal.form.payment.channel</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <field name="type" position="after">
+                <field name="payment_channel_id"
+                       invisible="type not in ['bank', 'cash']"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_journal_list_payment_channel" model="ir.ui.view">
+        <field name="name">account.journal.list.payment.channel</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_tree"/>
+        <field name="arch" type="xml">
+            <field name="code" position="after">
+                <field name="payment_channel_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_journal_search_payment_channel" model="ir.ui.view">
+        <field name="name">account.journal.search.payment.channel</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_search"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="payment_channel_id"/>
+            </field>
+            <filter name="inactive" position="after">
+                <separator/>
+                <filter string="Payment Channel"
+                        name="group_by_payment_channel"
+                        context="{'group_by': 'payment_channel_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

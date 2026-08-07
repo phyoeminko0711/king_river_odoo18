@@ -39,6 +39,12 @@ class RepairOrder(models.Model):
         tracking=True,
         check_company=True,
     )
+    repair_charge_line_ids = fields.One2many(
+        "workshop.repair.charge.line",
+        "repair_id",
+        string="Service Charges",
+        copy=True,
+    )
     # Upgrade compatibility for the first module version. Its inherited Repair
     # view referenced ``vehicle_id`` and can still be present until an upgrade
     # finishes obsolete-record cleanup. Keep this alias out of current views.

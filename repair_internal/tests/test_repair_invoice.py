@@ -45,7 +45,7 @@ class TestRepairInternalInvoice(TransactionCase):
             }
         )
 
-    def _create_done_repair(self, delivery_done=True):
+    def _create_done_repair(self, delivery_done=True, include_service_charge=False):
         repair = self.env["repair.order"].create(
             {
                 "partner_id": self.partner.id,
@@ -89,6 +89,17 @@ class TestRepairInternalInvoice(TransactionCase):
                 },
             ]
         )
+        if include_service_charge:
+            self.env["workshop.repair.charge.line"].create(
+                {
+                    "repair_id": repair.id,
+                    "charge_type": "labour",
+                    "product_id": self.service.id,
+                    "product_uom_qty": 1.0,
+                    "product_uom_id": self.service.uom_id.id,
+                    "price_unit": 75.0,
+                }
+            )
         repair.state = "done"
         if delivery_done:
             repair.delivery_inspection_completed = True
@@ -114,6 +125,17 @@ class TestRepairInternalInvoice(TransactionCase):
         self.assertEqual(invoice.repair_order_id, repair)
         self.assertEqual(len(invoice.invoice_line_ids), 2)
         self.assertEqual(set(invoice.invoice_line_ids.mapped("repair_move_id")), set(repair.move_ids.filtered(lambda move: move.repair_line_type == "add")))
+
+    def test_completed_repair_invoices_service_charge_lines(self):
+        repair = self._create_done_repair(include_service_charge=True)
+        charge_line = repair.repair_charge_line_ids
+        invoice = self.env["account.move"].browse(repair.action_create_invoice()["res_id"])
+        charge_invoice_line = invoice.invoice_line_ids.filtered("repair_charge_line_id")
+        self.assertEqual(charge_invoice_line.repair_charge_line_id, charge_line)
+        self.assertEqual(charge_invoice_line.product_id, self.service)
+        self.assertEqual(charge_invoice_line.quantity, 1.0)
+        self.assertEqual(charge_invoice_line.price_unit, 75.0)
+        self.assertEqual(len(invoice.invoice_line_ids), 3)
 
     def test_create_invoice_twice_opens_existing_invoice(self):
         repair = self._create_done_repair()

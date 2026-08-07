@@ -19,6 +19,7 @@
         "data/job_card_sequence.xml",
         "data/inspection_result_data.xml",
         "data/inspection_template_data.xml",
+        "views/product_template_views.xml",
         "views/repair_service_views.xml",
         "views/inspection_result_views.xml",
         "views/inspection_template_views.xml",
