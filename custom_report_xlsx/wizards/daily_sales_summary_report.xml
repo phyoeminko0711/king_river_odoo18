@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <record id="daily_sales_summary_wizard_view_form" model="ir.ui.view">
+            <field name="name">daily.sales.summary.wizard.form</field>
+            <field name="model">daily.sales.summary.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Daily Sales Summary">
+                    <group>
+                        <group>
+                            <field name="company_id"
+                                   options="{ 'no_create': True, 'no_create_edit': True, 'no_open': True }"/>
+                            <label for="date_from" string="Invoice Date From"/>
+                            <div class="o_row">
+                                <field name="date_from" nolabel="1"/>
+                                <label for="date_to" string="To Date"/>
+                                <field name="date_to" nolabel="1"/>
+                            </div>
+                            <field name="sales_team_id"
+                                   options="{ 'no_create': True, 'no_create_edit': True, 'no_open': True }"/>
+                            <field name="salesperson_id"
+                                   options="{ 'no_create': True, 'no_create_edit': True, 'no_open': True }"/>
+                            <field name="customer_id"
+                                   options="{ 'no_create': True, 'no_create_edit': True, 'no_open': True }"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="print_report" type="object" string="Print XLSX" class="oe_highlight"/>
+                        <button special="cancel" string="Cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_daily_sales_summary" model="ir.actions.act_window">
+            <field name="name">Daily Sales Summary</field>
+            <field name="res_model">daily.sales.summary.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_daily_sales_summary"
+                  name="Daily Sales Summary"
+                  parent="sale.menu_sale_report"
+                  action="action_daily_sales_summary"
+                  sequence="60"/>
+    </data>
+</odoo>
