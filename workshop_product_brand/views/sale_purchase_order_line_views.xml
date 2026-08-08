@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sale_order_form_line_brand_view" model="ir.ui.view">
+        <field name="name">sale.order.form.line.brand</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_template_id']" position="after">
+                <field name="brand_id" readonly="1" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_id']" position="after">
+                <field name="brand_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="sale_order_line_tree_brand_view" model="ir.ui.view">
+        <field name="name">sale.order.line.list.brand</field>
+        <field name="model">sale.order.line</field>
+        <field name="inherit_id" ref="sale.view_order_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='name']" position="after">
+                <field name="product_id" optional="show"/>
+                <field name="brand_id" readonly="1" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="sale_order_line_search_brand_view" model="ir.ui.view">
+        <field name="name">sale.order.line.search.brand</field>
+        <field name="model">sale.order.line</field>
+        <field name="inherit_id" ref="sale.view_sales_order_line_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+            <xpath expr="//filter[@name='product']" position="after">
+                <filter string="Brand" name="brand" domain="[]" context="{'group_by': 'brand_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_form_line_brand_view" model="ir.ui.view">
+        <field name="name">purchase.order.form.line.brand</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="after">
+                <field name="brand_id" readonly="1" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_id']" position="after">
+                <field name="brand_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_line_tree_brand_view" model="ir.ui.view">
+        <field name="name">purchase.order.line.list.brand</field>
+        <field name="model">purchase.order.line</field>
+        <field name="inherit_id" ref="purchase.purchase_order_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='product_id']" position="after">
+                <field name="brand_id" readonly="1" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_line_search_brand_view" model="ir.ui.view">
+        <field name="name">purchase.order.line.search.brand</field>
+        <field name="model">purchase.order.line</field>
+        <field name="inherit_id" ref="purchase.purchase_order_line_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+            <xpath expr="//filter[@name='groupby_product']" position="after">
+                <filter string="Brand" name="groupby_brand" domain="[]" context="{'group_by': 'brand_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_history_tree_brand_view" model="ir.ui.view">
+        <field name="name">purchase.history.list.brand</field>
+        <field name="model">purchase.order.line</field>
+        <field name="inherit_id" ref="purchase.purchase_history_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='partner_id']" position="after">
+                <field name="brand_id" readonly="1" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
