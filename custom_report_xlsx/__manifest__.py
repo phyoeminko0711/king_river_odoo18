@@ -26,7 +26,7 @@
     'data': [
         'security/ir.model.access.csv',
         'wizards/sale_detail_report.xml',
-        # 'wizards/purchase_detail_report.xml',
+        'wizards/purchase_detail_report.xml',
         'wizards/sale_analysis_detail_report_wizard.xml',
         'wizards/daily_sales_summary_report.xml',
     ],
