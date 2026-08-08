@@ -23,9 +23,9 @@ class SaleDetailReport(models.TransientModel):
         domain=[('customer_rank', '>', 0), ('active', '=', True)]
     )
 
-    sub_category_id = fields.Many2one(
+    category_id = fields.Many2one(
         comodel_name="product.category",
-        string="Sub Category"
+        string="Category"
     )
     product_ids = fields.Many2many(comodel_name="product.product",
                                    string="Products",
@@ -35,8 +35,8 @@ class SaleDetailReport(models.TransientModel):
 
 
     # Add these fields
-    group_category_domain = fields.Char(compute='_compute_group_category_domain', store=False)
-    sub_category_domain = fields.Char(compute='_compute_sub_category_domain', store=False)
+    # group_category_domain = fields.Char(compute='_compute_group_category_domain', store=False)
+    # sub_category_domain = fields.Char(compute='_compute_sub_category_domain', store=False)
 
     @api.onchange('category_id')
     def _onchange_product(self):
@@ -121,22 +121,16 @@ class SaleDetailReport(models.TransientModel):
                         sol.product_id,
                         TO_CHAR(so.date_order, 'YYYY-MM-DD') AS order_date,
                         partner.name AS customer,
-                        ind.name->>'en_US' AS industry,
                         rc.name AS currency,
-                        pc.name AS category_name, 
-                        sol.product_uom_qty AS doc_qty,
-                        sol.product_uom AS doc_uom,
-                        uom_doc.name->>'en_US' AS doc_uom_name,
-                        sol.qty_invoiced AS invoiced_doc_qty,
-                        uom_invoice.name->>'en_US' AS invoiced_doc_uom,
+                        pc.name AS category_name,
+                        sol.product_uom_qty AS quantity,
+                        uom.name->>'en_US' AS uom_name,
                         sol.price_unit AS unit_price,
                         sol.discount AS discount_percent,
-                        sol.qty_delivered AS delivered_doc_qty,
-                        uom_delivered.name->>'en_US' AS delivered_doc_uom,
                         sol.price_subtotal AS subtotal,
                         ct.name->>'en_US' AS team_name,
                         he.name AS sale_man,
-                        ptl.default_code AS product_code,
+                        pp.default_code AS product_code,
                         ptl.name->>'en_US' AS product_name,
                         sw.name AS warehouse_name
                     FROM sale_order so
@@ -144,26 +138,16 @@ class SaleDetailReport(models.TransientModel):
                         LEFT JOIN hr_employee he ON he.user_id = rs.id
                         INNER JOIN sale_order_line sol ON so.id = sol.order_id
                         INNER JOIN res_partner partner ON partner.id = so.partner_id
-                        LEFT JOIN res_partner_industry ind ON partner.industry_id = ind.id
                         INNER JOIN res_currency rc ON rc.id = so.currency_id 
                         INNER JOIN product_product pp ON pp.id = sol.product_id
                         INNER JOIN product_template ptl ON pp.product_tmpl_id = ptl.id
                         INNER JOIN product_category pc ON ptl.categ_id = pc.id
                         INNER JOIN crm_team ct ON ct.id = so.team_id
                         LEFT JOIN stock_warehouse sw ON so.warehouse_id = sw.id
-                        LEFT JOIN uom_uom uom_doc ON uom_doc.id = sol.product_uom
-                        LEFT JOIN uom_uom uom_invoice ON uom_invoice.id = sol.product_uom
-                        LEFT JOIN uom_uom uom_delivered ON uom_delivered.id = sol.product_uom
+                        LEFT JOIN uom_uom uom ON uom.id = sol.product_uom
                     WHERE so.state NOT IN ('draft', 'sent', 'cancel')
                     AND ptl.type IN ('consu', 'service')
               """ + condition_str + """
-            GROUP BY
-                    so.id, so.name, sol.id, sol.product_id, so.date_order,
-                    partner.name, rc.name, pc.name, sol.price_unit,
-                    sol.discount, ct.name, he.name, sol.product_uom_qty, 
-                    sol.qty_delivered, sol.qty_invoiced, sol.product_uom,
-                    ptl.default_code, ptl.name, uom_doc.name, uom_invoice.name,
-                    uom_delivered.name,ind.name,sw.name
             ORDER BY so.date_order
         """)
 
@@ -204,7 +188,7 @@ class SaleDetailReport(models.TransientModel):
         percent_format = workbook.add_format({'num_format': '0%'})
 
         y_offset = 0
-        sheet.merge_range(y_offset, 0, y_offset, 33, 'Sale Detail Report', title_style)
+        sheet.merge_range(y_offset, 0, y_offset, 15, 'Sale Detail Report', title_style)
         y_offset += 2
         sheet.write(y_offset, 0, _('From'), header_style_gray)
         sheet.write(y_offset, 1, self.date_from and str(self.date_from) or '', serial_no_style)
@@ -221,8 +205,6 @@ class SaleDetailReport(models.TransientModel):
         col += 1
         sheet.write(y_offset, col, _('Customer'), header_style_gray);
         col += 1
-        sheet.write(y_offset, col, _('Industry'), header_style_gray);
-        col += 1
         sheet.write(y_offset, col, _('Sale Team'), header_style_gray);
         col += 1
         sheet.write(y_offset, col, _('Sales Person'), header_style_gray);
@@ -230,35 +212,17 @@ class SaleDetailReport(models.TransientModel):
         sheet.write(y_offset, col, _('Currency'), header_style_gray);
         col += 1
 
-        sheet.write(y_offset, col, _('Main Category'), header_style_gray);
+        sheet.write(y_offset, col, _('Category'), header_style_gray);
         col += 1
-
-        sheet.write(y_offset, col, _('Group Category'), header_style_gray);
-        col += 1
-
-        sheet.write(y_offset, col, _('Sub Category'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('Product Code'), header_style_gray);
+        sheet.write(y_offset, col, _('Internal Reference'), header_style_gray);
         col += 1
         sheet.write(y_offset, col, _('Product Name'), header_style_gray);
         col += 1
         sheet.write(y_offset, col, _('Warehouse'), header_style_gray);
         col += 1
-        sheet.write(y_offset, col, _('Doc Uom'), header_style_gray);
+        sheet.write(y_offset, col, _('Unit of Measure'), header_style_gray);
         col += 1
-        sheet.write(y_offset, col, _('Doc Qty'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('TC Doc Uom'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('TC Doc Qty'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('Delivered Doc Uom'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('Delivered Doc Qty'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('Invoice Doc Uom'), header_style_gray);
-        col += 1
-        sheet.write(y_offset, col, _('Invoice Doc Qty'), header_style_gray);
+        sheet.write(y_offset, col, _('Quantity'), header_style_gray);
         col += 1
         sheet.write(y_offset, col, _('Unit Price'), header_style_gray);
         col += 1
@@ -269,12 +233,6 @@ class SaleDetailReport(models.TransientModel):
         # Write data rows
         for record in records:
             y_offset += 1
-            product = self.env['product.product'].browse(record.get('product_id'))
-
-            # TC qty and uom same as delivered if use_transportation_charges is True
-            use_tc = record.get('use_transportation_charges', False)
-            tc_doc_uom = record.get('delivered_doc_uom', '') if use_tc else ''
-            tc_doc_qty = record.get('delivered_doc_qty', 0.0) if use_tc else 0.0
 
             col = 0
             sheet.write(y_offset, col, record.get('order_no', ''), serial_no_style);
@@ -283,8 +241,6 @@ class SaleDetailReport(models.TransientModel):
             col += 1
             sheet.write(y_offset, col, record.get('customer', ''), serial_no_style);
             col += 1
-            sheet.write(y_offset, col, record.get('industry', ''), serial_no_style);
-            col += 1
             sheet.write(y_offset, col, record.get('team_name', ''), serial_no_style);
             col += 1
             sheet.write(y_offset, col, record.get('sale_man', ''), serial_no_style);
@@ -292,13 +248,7 @@ class SaleDetailReport(models.TransientModel):
             sheet.write(y_offset, col, record.get('currency', ''), serial_no_style);
             col += 1
 
-            sheet.write(y_offset, col, product.categ_id.parent_id.parent_id.name or '', serial_no_style);
-            col += 1
-
-            sheet.write(y_offset, col, product.categ_id.parent_id.name or '', serial_no_style);
-            col += 1
-
-            sheet.write(y_offset, col, product.categ_id.name or '', serial_no_style);
+            sheet.write(y_offset, col, record.get('category_name', ''), serial_no_style);
             col += 1
             sheet.write(y_offset, col, record.get('product_code', ''), serial_no_style);
             col += 1
@@ -306,21 +256,9 @@ class SaleDetailReport(models.TransientModel):
             col += 1
             sheet.write(y_offset, col, record.get('warehouse_name', ''), serial_no_style);
             col += 1
-            sheet.write(y_offset, col, record.get('doc_uom_name', ''), serial_no_style);
+            sheet.write(y_offset, col, record.get('uom_name', ''), serial_no_style);
             col += 1
-            sheet.write(y_offset, col, record.get('doc_qty', 0.0), number_style);
-            col += 1
-            sheet.write(y_offset, col, tc_doc_uom, serial_no_style);
-            col += 1
-            sheet.write(y_offset, col, tc_doc_qty, number_style);
-            col += 1
-            sheet.write(y_offset, col, record.get('delivered_doc_uom', ''), serial_no_style);
-            col += 1
-            sheet.write(y_offset, col, record.get('delivered_doc_qty', 0.0), number_style);
-            col += 1
-            sheet.write(y_offset, col, record.get('invoiced_doc_uom', ''), serial_no_style);
-            col += 1
-            sheet.write(y_offset, col, record.get('invoiced_doc_qty', 0.0), number_style);
+            sheet.write(y_offset, col, record.get('quantity', 0.0), number_style);
             col += 1
             sheet.write(y_offset, col, record.get('unit_price', 0.0), number_style);
             col += 1
@@ -329,7 +267,7 @@ class SaleDetailReport(models.TransientModel):
             sheet.write(y_offset, col, record.get('subtotal', 0.0), number_style)
 
         # Set column widths
-        sheet.set_column(0, 33, 18)
+        sheet.set_column(0, 15, 18)
 
         workbook.close()
         excel.seek(0)
