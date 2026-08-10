@@ -55,6 +55,7 @@ class SalePriceRule(models.Model):
     def action_activate(self):
         self._validate_before_activation()
         self.with_context(skip_sale_price_rule_protection=True).write({"state": "active", "active": True})
+        self.line_ids._check_overlapping_ranges()
 
     def action_set_to_draft(self):
         self.with_context(skip_sale_price_rule_protection=True).write({"state": "draft"})
@@ -244,10 +245,12 @@ class SalePriceRuleLine(models.Model):
         "active",
     )
     def _check_overlapping_ranges(self):
-        for line in self.filtered("active"):
+        for line in self.filtered(lambda item: item.active and item.rule_id.active and item.rule_id.state == "active"):
             scope_domain = [
                 ("id", "!=", line.id),
                 ("active", "=", True),
+                ("rule_id.active", "=", True),
+                ("rule_id.state", "=", "active"),
                 ("company_id", "=", line.company_id.id),
                 ("currency_id", "=", line.currency_id.id),
                 ("apply_on", "=", line.apply_on),
@@ -287,12 +290,13 @@ class SalePriceRuleLine(models.Model):
                     continue
                 raise ValidationError(
                     _(
-                        "Pricing rule line '%(line)s' overlaps with '%(other)s' for the same scope, "
+                        "Pricing rule line '%(line)s' overlaps with '%(other)s' in rule '%(rule)s' for the same scope, "
                         "currency, amount range, and validity period."
                     )
                     % {
                         "line": line.display_name,
                         "other": other.display_name,
+                        "rule": other.rule_id.display_name,
                     }
                 )
 
