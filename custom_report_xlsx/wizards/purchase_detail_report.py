@@ -62,8 +62,11 @@ class PurchaseDetailReport(models.TransientModel):
 
         self.env.cr.execute("""
                 select po.name as oder_no,pol.product_id,TO_CHAR(po.date_order, 'YYYY-MM-DD') as order_date,
-                partner.name as vendor,rc.name as currency,pc.name as category, ptl.default_code as part_no,
+                partner.name as vendor,rc.name as currency,pc.name as category, pp.default_code as part_no,
+                brand.name as brand_name,
                 pol.product_uom_qty as quantity,pol.qty_received as received_qty, sl.complete_name as location,
+                COALESCE(bill_status.paid_amount, 0.0) as paid_amount,
+                COALESCE(bill_status.unpaid_amount, 0.0) as unpaid_amount,
                 pol.qty_invoiced as invoiced_qty,pol.price_unit as unit_price, pol.price_subtotal as subtotal
                 from purchase_order po
                 inner join purchase_order_line pol on po.id = pol.order_id
@@ -73,7 +76,39 @@ class PurchaseDetailReport(models.TransientModel):
                 inner join res_currency rc on rc.id = pol.currency_id
                 inner join product_product pp on pp.id = pol.product_id
                 inner join product_template ptl on pp.product_tmpl_id = ptl.id
+                left join workshop_product_brand brand on brand.id = pp.brand_id
                 inner join product_category pc on ptl.categ_id = pc.id	
+                left join (
+                    select
+                        aml.purchase_line_id,
+                        sum(
+                            (case when am.move_type = 'in_refund' then -1 else 1 end)
+                            * abs(aml.price_subtotal)
+                            * (
+                                1 - case
+                                    when abs(am.amount_total) > 0
+                                    then abs(am.amount_residual) / abs(am.amount_total)
+                                    else 0
+                                end
+                            )
+                        ) as paid_amount,
+                        sum(
+                            (case when am.move_type = 'in_refund' then -1 else 1 end)
+                            * abs(aml.price_subtotal)
+                            * case
+                                when abs(am.amount_total) > 0
+                                then abs(am.amount_residual) / abs(am.amount_total)
+                                else 0
+                            end
+                        ) as unpaid_amount
+                    from account_move_line aml
+                    inner join account_move am on am.id = aml.move_id
+                    where aml.purchase_line_id is not null
+                    and aml.display_type = 'product'
+                    and am.state = 'posted'
+                    and am.move_type in ('in_invoice', 'in_refund')
+                    group by aml.purchase_line_id
+                ) bill_status on bill_status.purchase_line_id = pol.id
                 where po.state not in ('draft', 'cancel')
                 """ + condition_str + """ order by po.date_order """)
         records = self.env.cr.dictfetchall()
@@ -131,7 +166,7 @@ class PurchaseDetailReport(models.TransientModel):
 
         y_offset = 0
         row_no = 0
-        sheet.merge_range(y_offset, 0, y_offset, 12, 'Purchase Detail Report', title_style)
+        sheet.merge_range(y_offset, 0, y_offset, 15, 'Purchase Detail Report', title_style)
         y_offset += 2
         sheet.write(y_offset, 0, _('From'), header_style_gray)
         sheet.write(y_offset, 1, self.date_from and str(self.date_from) or '', serial_no_style)
@@ -143,16 +178,19 @@ class PurchaseDetailReport(models.TransientModel):
         sheet.write(y_offset, 0, _('Oder No'), header_style_gray)
         sheet.write(y_offset, 1, _('Order Date'), header_style_gray)
         sheet.write(y_offset, 2, _('Vendor'), header_style_gray)
-        sheet.write(y_offset, 3, _('Curreny'), header_style_gray)
+        sheet.write(y_offset, 3, _('Currency'), header_style_gray)
         sheet.write(y_offset, 4, _('Product Category'), header_style_gray)
         sheet.write(y_offset, 5, _('Product Code'), header_style_gray)
         sheet.write(y_offset, 6, _('Product Name'), header_style_gray)
-        sheet.write(y_offset, 7, _('Qty'), header_style_gray)
-        sheet.write(y_offset, 8, _('Received Qty'), header_style_gray)
-        sheet.write(y_offset, 9, _('Invoice Qty'), header_style_gray)
-        sheet.write(y_offset, 10, _('Unit Price'), header_style_gray)
-        sheet.write(y_offset, 11, _('SubTotal'), header_style_gray)
-        sheet.write(y_offset, 12, _('Location'), header_style_gray)
+        sheet.write(y_offset, 7, _('Brand'), header_style_gray)
+        sheet.write(y_offset, 8, _('Qty'), header_style_gray)
+        sheet.write(y_offset, 9, _('Received Qty'), header_style_gray)
+        sheet.write(y_offset, 10, _('Invoice Qty'), header_style_gray)
+        sheet.write(y_offset, 11, _('Unit Price'), header_style_gray)
+        sheet.write(y_offset, 12, _('SubTotal'), header_style_gray)
+        sheet.write(y_offset, 13, _('Location'), header_style_gray)
+        sheet.write(y_offset, 14, _('Paid'), header_style_gray)
+        sheet.write(y_offset, 15, _('Unpaid'), header_style_gray)
 
         for record in records:
             y_offset += 1
@@ -164,14 +202,18 @@ class PurchaseDetailReport(models.TransientModel):
             sheet.write(y_offset, 4, record['category'], serial_no_style)
             sheet.write(y_offset, 5, record['part_no'], serial_no_style)
             sheet.write(y_offset, 6, product.name, serial_no_style)
-            sheet.write(y_offset, 7, record['quantity'], serial_no_style)
-            sheet.write(y_offset, 8, record['received_qty'], serial_no_style)
-            sheet.write(y_offset, 9, record['invoiced_qty'], serial_no_style)
-            sheet.write(y_offset, 10, record['unit_price'], serial_no_style)
-            sheet.write(y_offset, 11, record['subtotal'], serial_no_style)
-            sheet.write(y_offset, 12, record['location'], serial_no_style)
+            sheet.write(y_offset, 7, record.get('brand_name') or '', serial_no_style)
+            sheet.write(y_offset, 8, record['quantity'], serial_no_style)
+            sheet.write(y_offset, 9, record['received_qty'], serial_no_style)
+            sheet.write(y_offset, 10, record['invoiced_qty'], serial_no_style)
+            sheet.write(y_offset, 11, record['unit_price'], serial_no_style)
+            sheet.write(y_offset, 12, record['subtotal'], serial_no_style)
+            sheet.write(y_offset, 13, record['location'], serial_no_style)
+            sheet.write(y_offset, 14, record['paid_amount'], serial_no_style)
+            sheet.write(y_offset, 15, record['unpaid_amount'], serial_no_style)
 
-        sheet.set_column(4, 6, 17)
+        sheet.set_column(4, 7, 17)
+        sheet.set_column(13, 15, 17)
 
         workbook.close()
         excel.seek(0)

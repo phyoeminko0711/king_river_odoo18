@@ -20,6 +20,7 @@
         'purchase',
         'account',
         'account_payment_channel',
+        'workshop_product_brand',
         'report_controller',
     ],
 
