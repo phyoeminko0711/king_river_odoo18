@@ -4,21 +4,21 @@ from odoo.exceptions import UserError, ValidationError
 
 class WorkshopJobCardLine(models.Model):
     _name = "workshop.job.card.line"
-    _description = "Workshop Job Card Repair Option"
+    _description = "Workshop Job Card Product Line"
     _order = "sequence, id"
 
     sequence = fields.Integer(default=10)
     job_card_service_id = fields.Many2one(
         "workshop.job.card.service",
         string="Job Card Service",
-        required=True,
         ondelete="cascade",
         index=True,
     )
     job_card_id = fields.Many2one(
-        related="job_card_service_id.job_card_id",
-        store=True,
-        readonly=True,
+        "workshop.job.card",
+        string="Job Card",
+        required=True,
+        ondelete="cascade",
         index=True,
     )
     repair_service_id = fields.Many2one(
@@ -34,17 +34,20 @@ class WorkshopJobCardLine(models.Model):
     )
     product_id = fields.Many2one(
         "product.product",
-        string="Part / Option",
+        string="Product",
         required=True,
         ondelete="restrict",
-        domain=[("type", "=", "consu")],
+        domain=[("type", "in", ("consu", "service"))],
     )
     brand_id = fields.Many2one(
-        related="product_id.brand_id", store=True, readonly=True
+        related="product_id.brand_id",
+        string="Brand",
+        store=True,
+        readonly=True,
     )
     part_number = fields.Char(
         related="product_id.default_code",
-        string="Part No.",
+        string="Part Number",
         store=True,
         readonly=True,
     )
@@ -107,20 +110,23 @@ class WorkshopJobCardLine(models.Model):
             service_line = self.env["workshop.job.card.service"].browse(
                 vals.get("job_card_service_id")
             )
-            card = service_line.job_card_id
+            if service_line and not vals.get("job_card_id"):
+                vals["job_card_id"] = service_line.job_card_id.id
+            card = self.env["workshop.job.card"].browse(vals.get("job_card_id"))
             if (
                 card
                 and card.state != "draft"
                 and not self.env.context.get("skip_job_card_state_check")
             ):
-                raise UserError(_("Repair Options can only be added in Draft."))
+                raise UserError(_("Job Card product lines can only be added in Draft."))
             product = self.env["product.product"].browse(vals.get("product_id"))
             if product:
                 vals.setdefault("product_uom_id", product.uom_id.id)
                 vals.setdefault("unit_price", product.lst_price)
         lines = super().create(vals_list)
-        lines.filtered("selected")._sync_selected_option()
-        lines._validate_single_selected_option()
+        legacy_selected_lines = lines.filtered(lambda line: line.selected and line.job_card_service_id)
+        legacy_selected_lines._sync_selected_option()
+        legacy_selected_lines._validate_single_selected_option()
         return lines
 
     def write(self, vals):
@@ -136,22 +142,23 @@ class WorkshopJobCardLine(models.Model):
             "selected",
         }.intersection(vals)
         for line in self:
-            if line.job_card_id.state == "sent" and business_fields - {"selected"}:
-                raise UserError(_("Only option selection can change after sending."))
+            if line.job_card_id.state == "sent" and business_fields:
+                raise UserError(_("Job Card product lines cannot be changed after sending."))
             if line.job_card_id.state not in {"draft", "sent"} and business_fields:
-                raise UserError(_("Approved or closed Repair Options cannot be modified."))
+                raise UserError(_("Approved or closed Job Card product lines cannot be modified."))
         result = super().write(vals)
-        selection_changed = vals.get("selected") is True or (
-            "job_card_service_id" in vals and any(self.mapped("selected"))
+        selection_changed = (
+            vals.get("selected") is True
+            or ("job_card_service_id" in vals and any(self.mapped("selected")))
         )
         if selection_changed and not self.env.context.get("skip_selection_sync"):
-            self.filtered("selected")._sync_selected_option()
-        self._validate_single_selected_option()
+            self.filtered(lambda line: line.selected and line.job_card_service_id)._sync_selected_option()
+        self.filtered("job_card_service_id")._validate_single_selected_option()
         return result
 
     def unlink(self):
         if any(line.job_card_id.state != "draft" for line in self):
-            raise UserError(_("Repair Options can only be deleted in Draft."))
+            raise UserError(_("Job Card product lines can only be deleted in Draft."))
         return super().unlink()
 
     def _sync_selected_option(self):

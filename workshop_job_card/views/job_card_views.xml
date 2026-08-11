@@ -72,7 +72,7 @@
                                    string="Repair Order"/>
                         </button>
                     </div>
-                    <group string="Job Card">
+                    <group string="Job Card Information">
                         <field name="name" string="Job Card No."/>
                         <field name="job_card_date" readonly="state != 'draft'"/>
                         <field name="approved_date"
@@ -81,7 +81,7 @@
                                invisible="state not in ['approved', 'repair_created']"/>
                     </group>
                     <group>
-                        <group>
+                        <group string="Customer &amp; Vehicle">
                             <field name="customer_id"
                                    context="{'res_partner_search_mode': 'customer'}"
                                    readonly="state != 'draft'"/>
@@ -99,19 +99,10 @@
                                }"
                                    readonly="state != 'draft'"
                             />
-                            <!--                            <field name="vehicle_id"-->
-                            <!--                                   domain="[('customer_id', '=', customer_id)]"-->
-                            <!--                                   options="{'no_create': True}"-->
-                            <!--                                   readonly="state != 'draft'"/>-->
                             <field name="plate_no"/>
                             <field name="mileage" readonly="state != 'draft'"/>
-                            <field name="vehicle_brand_id"/>
-                            <field name="vehicle_model_id"/>
-                            <field name="chassis_no"/>
-                            <field name="engine_no"/>
-                            <field name="color"/>
                         </group>
-                        <group>
+                        <group string="Workshop Assignment">
                             <field name="technician_id"
                                    domain="[('active', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id), ('id', 'not in', [assistant_technician_id, testing_driver_id])]"
                                    readonly="state != 'draft'"/>
@@ -124,6 +115,17 @@
                             <field name="technician_job_id"/>
                         </group>
                     </group>
+                    <group string="Vehicle Details">
+                        <group>
+                            <field name="vehicle_brand_id"/>
+                            <field name="vehicle_model_id"/>
+                            <field name="color"/>
+                        </group>
+                        <group>
+                            <field name="chassis_no"/>
+                            <field name="engine_no"/>
+                        </group>
+                    </group>
                     <notebook>
                         <page string="Complaint &amp; Diagnosis"
                               name="complaint_inspection">
@@ -134,38 +136,18 @@
                             </group>
                         </page>
                         <page string="Repair Options" name="repair_options">
-                            <div class="d-flex gap-2 mb-3">
-                                <button name="action_open_add_repair_service_wizard"
-                                        type="object"
-                                        string="Add Repair Service"
-                                        class="btn-primary"
-                                        icon="fa-plus"
-                                        invisible="state not in ['draft', 'sent']"/>
-                                <button name="action_open_remove_repair_service_wizard"
-                                        type="object"
-                                        string="Remove Repair Service"
-                                        class="btn-secondary"
-                                        icon="fa-minus"
-                                        invisible="state not in ['draft', 'sent'] or not service_line_ids"/>
-                            </div>
-                            <separator string="Product Options"/>
+                            <separator string="Product Lines"/>
                             <field name="line_ids" id="repair_options" nolabel="1"
-                                   readonly="state not in ['draft', 'sent']">
-                                <list editable="bottom" create="0" delete="0">
-                                    <field name="job_card_service_id" column_invisible="True"/>
-                                    <field name="repair_service_id" string="Repair Service" readonly="1"/>
-                                    <field name="generated_by_service" column_invisible="True"/>
-                                    <field name="product_id"
-                                           readonly="generated_by_service or parent.state != 'draft'"/>
+                                   readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="product_id"/>
                                     <field name="brand_id" readonly="1"/>
                                     <field name="part_number" readonly="1"/>
-                                    <field name="warranty" readonly="parent.state != 'draft'"/>
-                                    <field name="quantity" readonly="parent.state != 'draft'"/>
-                                    <field name="product_uom_id" readonly="parent.state != 'draft'"/>
-                                    <field name="unit_price" readonly="parent.state != 'draft'"/>
+                                    <field name="warranty"/>
+                                    <field name="quantity"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="unit_price"/>
                                     <field name="amount" readonly="1"/>
-                                    <field name="selected"
-                                           readonly="parent.state not in ['draft', 'sent']"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>

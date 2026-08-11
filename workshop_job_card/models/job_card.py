@@ -142,7 +142,7 @@ class WorkshopJobCard(models.Model):
     line_ids = fields.One2many(
         "workshop.job.card.line",
         "job_card_id",
-        string="Repair Options",
+        string="Product Lines",
         copy=True,
     )
     currency_id = fields.Many2one(
@@ -327,11 +327,13 @@ class WorkshopJobCard(models.Model):
         for card in self:
             card.selected_line_count = len(card.line_ids.filtered("selected"))
 
-    @api.depends("line_ids.selected", "line_ids.amount")
+    @api.depends("line_ids.amount", "labour_cost", "service_cost")
     def _compute_total_amount(self):
         for card in self:
-            card.total_amount = sum(
-                card.line_ids.filtered("selected").mapped("amount")
+            card.total_amount = (
+                sum(card.line_ids.mapped("amount"))
+                + card.labour_cost
+                + card.service_cost
             )
 
     @api.onchange("customer_id")
@@ -565,6 +567,18 @@ class WorkshopJobCard(models.Model):
             "price_unit": amount,
         }
 
+    def _prepare_service_product_charge_line_vals(self, repair, line, sequence):
+        self.ensure_one()
+        return {
+            "sequence": sequence,
+            "repair_id": repair.id,
+            "charge_type": "service",
+            "product_id": line.product_id.id,
+            "product_uom_qty": line.quantity,
+            "product_uom_id": line.product_uom_id.id,
+            "price_unit": line.unit_price,
+        }
+
     def _prepare_repair_charge_lines(self, repair):
         self.ensure_one()
         charge_vals = []
@@ -595,35 +609,15 @@ class WorkshopJobCard(models.Model):
             raise ValidationError(
                 _("Customer, Vehicle, and Technician are required before sending.")
             )
-        if not self.service_line_ids:
-            raise ValidationError(
-                _("Add at least one Repair Service before sending the Job Card.")
-            )
-        services_without_options = self.service_line_ids.filtered(
-            lambda service: not service.option_line_ids
-        )
-        if services_without_options:
-            service_names = "\n".join(
-                "- %s" % service.repair_service_id.display_name
-                for service in services_without_options
-            )
-            raise ValidationError(
-                _(
-                    "Add at least one Product Option for the following "
-                    "Repair Services:\n%s"
-                )
-                % service_names
-            )
+        if not self.line_ids:
+            raise ValidationError(_("Add at least one product line before sending the Job Card."))
         self._workflow_write({"state": "sent"})
         return True
 
     def action_approve(self):
         self._ensure_state("sent")
-        if not self.line_ids.filtered("selected"):
-            raise ValidationError(
-                _("Select at least one Repair Option before approval.")
-            )
-        self._raise_for_incomplete_service_selections()
+        if not self.line_ids:
+            raise ValidationError(_("Add at least one product line before approval."))
         self._workflow_write(
             {
                 "state": "approved",
@@ -659,14 +653,9 @@ class WorkshopJobCard(models.Model):
             raise UserError(_("A Repair Order already exists for this Job Card."))
         self._ensure_state("approved")
 
-        selected_lines = self.service_line_ids.mapped("option_line_ids").filtered(
-            "selected"
-        )
-        if not selected_lines:
-            raise ValidationError(
-                _("Select at least one Repair Option before creating a Repair Order.")
-            )
-        self._raise_for_incomplete_service_selections()
+        product_lines = self.line_ids.filtered("product_id")
+        if not product_lines:
+            raise ValidationError(_("Add at least one product line before creating a Repair Order."))
 
         repair = self.env["repair.order"].create(
             {
@@ -679,22 +668,29 @@ class WorkshopJobCard(models.Model):
                 "assistant_technician_id": self.assistant_technician_id.id,
             }
         )
-        self.env["stock.move"].create(
-            [
-                {
-                    "repair_id": repair.id,
-                    "repair_line_type": "add",
-                    "product_id": line.product_id.id,
-                    "product_uom_qty": line.quantity,
-                    "product_uom": line.product_uom_id.id,
-                    "price_unit": line.unit_price,
-                    "location_id": repair.location_id.id,
-                    "location_dest_id": repair.location_dest_id.id,
-                }
-                for line in selected_lines
-            ]
-        )
+        part_lines = product_lines.filtered(lambda line: line.product_id.type != "service")
+        if part_lines:
+            self.env["stock.move"].create(
+                [
+                    {
+                        "repair_id": repair.id,
+                        "repair_line_type": "add",
+                        "product_id": line.product_id.id,
+                        "product_uom_qty": line.quantity,
+                        "product_uom": line.product_uom_id.id,
+                        "price_unit": line.unit_price,
+                        "location_id": repair.location_id.id,
+                        "location_dest_id": repair.location_dest_id.id,
+                    }
+                    for line in part_lines
+                ]
+            )
         charge_vals = self._prepare_repair_charge_lines(repair)
+        service_lines = product_lines.filtered(lambda line: line.product_id.type == "service")
+        charge_vals.extend(
+            self._prepare_service_product_charge_line_vals(repair, line, 100 + index)
+            for index, line in enumerate(service_lines, start=1)
+        )
         if charge_vals:
             self.env["workshop.repair.charge.line"].create(charge_vals)
         self._workflow_write(
