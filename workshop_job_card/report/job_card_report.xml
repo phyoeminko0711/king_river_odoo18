@@ -1,85 +1,329 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="paperformat_workshop_job_card" model="report.paperformat">
+        <field name="name">King River Job Card A4</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">8</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
     <record id="action_report_workshop_job_card" model="ir.actions.report">
-        <field name="name">Job Card</field>
+        <field name="name">Job Card / Quotation</field>
         <field name="model">workshop.job.card</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">workshop_job_card.report_workshop_job_card_document</field>
         <field name="report_file">workshop_job_card.report_workshop_job_card_document</field>
         <field name="binding_model_id" ref="model_workshop_job_card"/>
         <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="workshop_job_card.paperformat_workshop_job_card"/>
     </record>
 
     <template id="report_workshop_job_card_document">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
-                <t t-call="web.external_layout">
-                    <div class="page">
-                        <h2>Job Card: <span t-field="doc.name"/></h2>
-                        <div class="row mt16 mb16">
-                            <div class="col-6">
-                                <strong>Customer:</strong>
-                                <span t-field="doc.customer_id"/>
-                            </div>
-                            <div class="col-6">
-                                <strong>Vehicle:</strong>
-                                <span t-field="doc.vehicle_id"/>
-                            </div>
-                        </div>
-                        <div class="row mb16">
-                            <div class="col-6">
-                                <strong>Plate No.:</strong>
-                                <span t-field="doc.plate_no"/>
-                            </div>
-                            <div class="col-6">
-                                <strong>Technician:</strong>
-                                <span t-field="doc.technician_id"/>
-                            </div>
-                        </div>
+                <t t-set="company" t-value="doc.company_id or res_company"/>
+                <t t-set="currency" t-value="doc.currency_id or company.currency_id"/>
+                <div class="page kr-job-card">
+                    <style>
+                        .kr-job-card {
+                            font-family: Arial, 'Noto Sans Myanmar', 'Myanmar Text', sans-serif;
+                            font-size: 11px;
+                            color: #000;
+                        }
+                        .kr-center { text-align: center; }
+                        .kr-logo { max-height: 58px; max-width: 150px; margin-bottom: 4px; }
+                        .kr-company-name { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+                        .kr-company-subtitle { font-size: 12px; font-weight: 600; }
+                        .kr-company-line { font-size: 10px; line-height: 1.35; }
+                        .kr-divider { border-top: 2px solid #000; margin: 7px 0 8px; }
+                        .kr-title { font-size: 15px; font-weight: 700; text-align: center; margin: 5px 0 8px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        .kr-info-table td {
+                            border: 1px solid #000;
+                            padding: 4px 5px;
+                            vertical-align: top;
+                        }
+                        .kr-section-title {
+                            background: #f0f0f0;
+                            font-weight: 700;
+                            text-align: center;
+                        }
+                        .kr-label { width: 28%; font-weight: 700; white-space: nowrap; }
+                        .kr-value { width: 22%; }
+                        .kr-lines {
+                            margin-top: 8px;
+                            page-break-inside: auto;
+                        }
+                        .kr-lines th {
+                            border: 1px solid #000;
+                            padding: 5px 4px;
+                            background: #f0f0f0;
+                            font-weight: 700;
+                            text-align: center;
+                        }
+                        .kr-lines td {
+                            border: 1px solid #000;
+                            padding: 5px 4px;
+                            vertical-align: top;
+                        }
+                        .kr-lines thead { display: table-header-group; }
+                        .kr-lines tr { page-break-inside: avoid; }
+                        .kr-right { text-align: right; }
+                        .kr-center-cell { text-align: center; }
+                        .kr-nowrap { white-space: nowrap; }
+                        .kr-product-main { font-weight: 600; }
+                        .kr-product-sub { font-size: 10px; margin-top: 2px; }
+                        .kr-total-table {
+                            width: 42%;
+                            margin-left: auto;
+                            margin-top: 8px;
+                        }
+                        .kr-total-table td {
+                            border: 1px solid #000;
+                            padding: 5px 6px;
+                        }
+                        .kr-total-label { font-weight: 700; }
+                        .kr-grand-total td {
+                            font-size: 12px;
+                            font-weight: 700;
+                            border-top: 2px solid #000;
+                        }
+                        .kr-text-section {
+                            margin-top: 8px;
+                            border: 1px solid #000;
+                            padding: 6px;
+                            page-break-inside: avoid;
+                        }
+                        .kr-text-title { font-weight: 700; margin-bottom: 3px; }
+                        .kr-inspection { margin-top: 6px; font-size: 10px; }
+                        .kr-signatures {
+                            margin-top: 18px;
+                            page-break-inside: avoid;
+                        }
+                        .kr-signatures td {
+                            width: 33.33%;
+                            text-align: center;
+                            padding-top: 30px;
+                        }
+                        .kr-sign-line {
+                            border-top: 1px solid #000;
+                            padding-top: 5px;
+                            margin: 0 12px;
+                            font-weight: 700;
+                        }
+                    </style>
 
-                        <t t-foreach="[
-                            ('customer_check', 'Customer Vehicle Condition Check'),
-                            ('technician_inspection', 'Technician Inspection'),
-                            ('delivery_inspection', 'Delivery Inspection')
-                        ]" t-as="inspection_info">
-                            <t t-set="inspections" t-value="doc.inspection_ids.filtered(lambda inspection: inspection.inspection_type == inspection_info[0] and inspection.state == 'completed')"/>
-                            <h3 class="mt24"><span t-out="inspection_info[1]"/></h3>
-                            <t t-if="not inspections">
-                                <p>No completed inspection.</p>
+                    <div class="kr-center">
+                        <t t-set="company_mobile" t-value="company.mobile if 'mobile' in company._fields else False"/>
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" class="kr-logo"/>
+                        <div class="kr-company-name">
+                            <span t-field="company.name"/>
+                        </div>
+                        <div class="kr-company-subtitle" t-if="'report_header' in company._fields and company.report_header">
+                            <span t-field="company.report_header"/>
+                        </div>
+                        <div class="kr-company-line">
+                            <t t-if="company.street"><span t-field="company.street"/></t>
+                            <t t-if="company.street2">, <span t-field="company.street2"/></t>
+                            <t t-if="company.city">, <span t-field="company.city"/></t>
+                        </div>
+                        <div class="kr-company-line" t-if="company.phone or company_mobile or company.email">
+                            <t t-if="company.phone">Phone: <span t-field="company.phone"/></t>
+                            <t t-if="company_mobile">
+                                <t t-if="company.phone"> / </t>
+                                <span t-esc="company_mobile"/>
                             </t>
-                            <t t-foreach="inspections" t-as="inspection">
-                                <p>
-                                    <strong>Inspector:</strong>
-                                    <span t-field="inspection.inspector_id"/>
-                                    <strong class="ms-3">Date:</strong>
-                                    <span t-field="inspection.inspection_date"/>
-                                    <strong class="ms-3">Completed:</strong>
-                                    <span t-field="inspection.completed_date"/>
-                                </p>
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Description</th>
-                                            <th>Result</th>
-                                            <th>Remark</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr t-foreach="inspection.line_ids" t-as="line">
-                                            <td><span t-field="line.checkpoint_name"/></td>
-                                            <td><span t-field="line.result"/></td>
-                                            <td><span t-field="line.remark"/></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <p t-if="inspection.general_remark">
-                                    <strong>Remarks:</strong>
-                                    <span t-field="inspection.general_remark"/>
-                                </p>
+                            <t t-if="company.email">
+                                <t t-if="company.phone or company_mobile"> | </t>
+                                <span t-field="company.email"/>
                             </t>
-                        </t>
+                        </div>
                     </div>
-                </t>
+                    <div class="kr-divider"/>
+                    <div class="kr-title">JOB CARD / QUOTATION</div>
+
+                    <table class="kr-info-table">
+                        <tr>
+                            <td colspan="4" class="kr-section-title">Job Card Information</td>
+                        </tr>
+                        <tr>
+                            <td class="kr-label">Job Card No.</td>
+                            <td class="kr-value"><span t-field="doc.name"/></td>
+                            <td class="kr-label">Job Card Date</td>
+                            <td class="kr-value"><span t-field="doc.job_card_date"/></td>
+                        </tr>
+                        <tr>
+                            <td class="kr-label">Customer</td>
+                            <td class="kr-value"><span t-field="doc.customer_id"/></td>
+                            <td class="kr-label">Mileage</td>
+                            <td class="kr-value">
+                                <span t-if="doc.mileage" t-esc="'{:,.0f}'.format(doc.mileage)"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kr-label">Phone</td>
+                            <td class="kr-value"><span t-field="doc.customer_phone"/></td>
+                            <td class="kr-label">Technician</td>
+                            <td class="kr-value"><span t-field="doc.technician_id"/></td>
+                        </tr>
+                        <tr>
+                            <td class="kr-label">Vehicle</td>
+                            <td class="kr-value"><span t-field="doc.vehicle_id"/></td>
+                            <td class="kr-label">Assistant Technician</td>
+                            <td class="kr-value"><span t-field="doc.assistant_technician_id"/></td>
+                        </tr>
+                        <tr>
+                            <td class="kr-label">Plate Number</td>
+                            <td class="kr-value"><span t-field="doc.plate_no"/></td>
+                            <td class="kr-label">Testing Driver</td>
+                            <td class="kr-value"><span t-field="doc.testing_driver_id"/></td>
+                        </tr>
+                        <tr t-if="doc.vehicle_brand_id or doc.vehicle_model_id or doc.chassis_no or doc.engine_no or doc.color">
+                            <td colspan="4" class="kr-section-title">Vehicle Details</td>
+                        </tr>
+                        <tr t-if="doc.vehicle_brand_id or doc.vehicle_model_id">
+                            <td class="kr-label">Vehicle Brand</td>
+                            <td class="kr-value"><span t-field="doc.vehicle_brand_id"/></td>
+                            <td class="kr-label">Vehicle Model</td>
+                            <td class="kr-value"><span t-field="doc.vehicle_model_id"/></td>
+                        </tr>
+                        <tr t-if="doc.chassis_no or doc.engine_no">
+                            <td class="kr-label">Chassis Number</td>
+                            <td class="kr-value"><span t-field="doc.chassis_no"/></td>
+                            <td class="kr-label">Engine Number</td>
+                            <td class="kr-value"><span t-field="doc.engine_no"/></td>
+                        </tr>
+                        <tr t-if="doc.color">
+                            <td class="kr-label">Color</td>
+                            <td class="kr-value" colspan="3"><span t-field="doc.color"/></td>
+                        </tr>
+                    </table>
+
+                    <table class="kr-lines">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">No.</th>
+                                <th style="width: 34%;">Part / Description</th>
+                                <th style="width: 8%;">Qty</th>
+                                <th style="width: 8%;">UoM</th>
+                                <th style="width: 12%;">Brand</th>
+                                <th style="width: 12%;">Part No.</th>
+                                <th style="width: 10%;">Unit Price</th>
+                                <th style="width: 11%;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="doc.line_ids" t-as="line">
+                                <td class="kr-center-cell"><span t-esc="line_index + 1"/></td>
+                                <td>
+                                    <t t-set="tmpl" t-value="line.product_id.product_tmpl_id"/>
+                                    <t t-set="english_name" t-value="tmpl.english_name if 'english_name' in tmpl._fields else False"/>
+                                    <div class="kr-product-main">
+                                        <t t-if="line.part_number">[<span t-field="line.part_number"/>] </t>
+                                        <span t-esc="english_name or line.product_id.display_name"/>
+                                    </div>
+                                    <div class="kr-product-sub" t-if="tmpl.name and tmpl.name != english_name">
+                                        <span t-field="tmpl.name"/>
+                                    </div>
+                                    <div class="kr-product-sub" t-if="line.warranty">
+                                        Warranty: <span t-field="line.warranty"/>
+                                    </div>
+                                </td>
+                                <td class="kr-center-cell">
+                                    <span t-field="line.quantity"/>
+                                </td>
+                                <td class="kr-center-cell"><span t-field="line.product_uom_id"/></td>
+                                <td><span t-field="line.brand_id"/></td>
+                                <td><span t-field="line.part_number"/></td>
+                                <td class="kr-right kr-nowrap">
+                                    <span t-field="line.unit_price" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                </td>
+                                <td class="kr-right kr-nowrap">
+                                    <span t-field="line.amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                </td>
+                            </tr>
+                            <tr t-if="not doc.line_ids">
+                                <td colspan="8" class="kr-center-cell">No product lines.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <t t-set="parts_total" t-value="sum(doc.line_ids.mapped('amount'))"/>
+                    <table class="kr-total-table">
+                        <tr>
+                            <td class="kr-total-label">Parts Total</td>
+                            <td class="kr-right">
+                                <span t-esc="parts_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kr-total-label">Labour Cost</td>
+                            <td class="kr-right">
+                                <span t-field="doc.labour_cost" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kr-total-label">Service Cost</td>
+                            <td class="kr-right">
+                                <span t-field="doc.service_cost" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                            </td>
+                        </tr>
+                        <tr class="kr-grand-total">
+                            <td>TOTAL</td>
+                            <td class="kr-right">
+                                <span t-field="doc.total_amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="kr-text-section" t-if="doc.complaint">
+                        <div class="kr-text-title">Customer Complaint</div>
+                        <span t-field="doc.complaint"/>
+                    </div>
+                    <div class="kr-text-section" t-if="doc.diagnosis">
+                        <div class="kr-text-title">Diagnosis</div>
+                        <span t-field="doc.diagnosis"/>
+                    </div>
+                    <div class="kr-text-section" t-if="doc.recommendation">
+                        <div class="kr-text-title">Recommendation</div>
+                        <span t-field="doc.recommendation"/>
+                    </div>
+
+                    <table class="kr-inspection" t-if="doc.customer_check_completed or doc.technician_inspection_completed">
+                        <tr>
+                            <td>
+                                <strong>Customer Check:</strong>
+                                <span t-if="doc.customer_check_completed">Completed</span>
+                                <span t-else="">Pending</span>
+                            </td>
+                            <td>
+                                <strong>Technician Inspection:</strong>
+                                <span t-if="doc.technician_inspection_completed">Completed</span>
+                                <span t-else="">Pending</span>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="kr-text-section">
+                        <div class="kr-text-title">Remark / Notes</div>
+                        <br/>
+                    </div>
+
+                    <table class="kr-signatures">
+                        <tr>
+                            <td><div class="kr-sign-line">Customer Signature</div></td>
+                            <td><div class="kr-sign-line">Technician Signature</div></td>
+                            <td><div class="kr-sign-line">Authorized Signature</div></td>
+                        </tr>
+                    </table>
+                </div>
             </t>
         </t>
     </template>
