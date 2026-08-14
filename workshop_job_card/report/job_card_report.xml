@@ -37,6 +37,21 @@
                         document.title = "<t t-out="report_filename"/>";
                     </script>
                     <style>
+                        @page {
+                            size: A4;
+                            margin: 0;
+                        }
+                        @media print {
+                            html,
+                            body {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+                            .kr-job-card {
+                                padding: 8mm 7mm !important;
+                                box-sizing: border-box;
+                            }
+                        }
                         .kr-job-card {
                             font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif;
                             font-size: 11px;
