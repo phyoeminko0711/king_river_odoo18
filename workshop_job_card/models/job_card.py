@@ -1,3 +1,9 @@
+import base64
+import re
+import secrets
+from datetime import timedelta
+from urllib.parse import urlparse
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -238,6 +244,16 @@ class WorkshopJobCard(models.Model):
     technician_inspection_completed = fields.Boolean(compute="_compute_inspection_status")
     technician_inspection_in_progress = fields.Boolean(compute="_compute_inspection_status")
     delivery_inspection_completed = fields.Boolean(compute="_compute_inspection_status")
+    can_share_to_viber = fields.Boolean(compute="_compute_can_share_to_viber")
+    viber_share_token = fields.Char(copy=False, readonly=True, index=True)
+    viber_share_token_expiry = fields.Datetime(copy=False, readonly=True)
+    viber_share_attachment_id = fields.Many2one(
+        "ir.attachment",
+        string="Viber Share PDF",
+        copy=False,
+        readonly=True,
+        ondelete="set null",
+    )
 
     _sql_constraints = [
         (
@@ -298,6 +314,11 @@ class WorkshopJobCard(models.Model):
     def _compute_repair_order_count(self):
         for card in self:
             card.repair_order_count = 1 if card.repair_order_id else 0
+
+    @api.depends("customer_id")
+    def _compute_can_share_to_viber(self):
+        for card in self:
+            card.can_share_to_viber = bool(card.id and card.customer_id)
 
     @api.depends("inspection_ids.state", "inspection_ids.inspection_type", "inspection_ids.inspection_date")
     def _compute_inspection_status(self):
@@ -395,6 +416,110 @@ class WorkshopJobCard(models.Model):
 
     def _workflow_write(self, vals):
         return super(WorkshopJobCard, self).write(vals)
+
+    def _get_job_card_report_pdf(self):
+        self.ensure_one()
+        pdf_content, _content_type = self.env["ir.actions.report"]._render_qweb_pdf(
+            "workshop_job_card.report_workshop_job_card_document",
+            res_ids=self.id,
+        )
+        return pdf_content
+
+    def _get_share_pdf_filename(self):
+        self.ensure_one()
+        safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.name or str(self.id)).strip("_")
+        return _("Job_Card_%s.pdf") % (safe_name or self.id)
+
+    def _ensure_viber_share_attachment(self):
+        self.ensure_one()
+        pdf_content = self._get_job_card_report_pdf()
+        filename = self._get_share_pdf_filename()
+        values = {
+            "name": filename,
+            "type": "binary",
+            "datas": base64.b64encode(pdf_content),
+            "mimetype": "application/pdf",
+            "res_model": self._name,
+            "res_id": self.id,
+            "public": False,
+        }
+        attachment = self.viber_share_attachment_id.sudo()
+        if attachment:
+            attachment.write(values)
+        else:
+            attachment = self.env["ir.attachment"].sudo().create(values)
+            super(WorkshopJobCard, self.sudo()).write(
+                {"viber_share_attachment_id": attachment.id}
+            )
+        return attachment
+
+    def _ensure_viber_share_token(self):
+        self.ensure_one()
+        now = fields.Datetime.now()
+        if not self.viber_share_token or not self.viber_share_token_expiry or self.viber_share_token_expiry <= now:
+            super(WorkshopJobCard, self.sudo()).write(
+                {
+                    "viber_share_token": secrets.token_urlsafe(32),
+                    "viber_share_token_expiry": now + timedelta(hours=24),
+                }
+            )
+            self.invalidate_recordset(["viber_share_token", "viber_share_token_expiry"])
+        return self.viber_share_token
+
+    def _get_viber_share_base_url(self):
+        base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
+        parsed_url = urlparse(base_url)
+        is_local_http = (
+            parsed_url.scheme == "http"
+            and parsed_url.hostname in {"localhost", "127.0.0.1", "::1"}
+        )
+        if parsed_url.scheme != "https" and not is_local_http:
+            raise UserError(
+                _("Configure web.base.url with an HTTPS URL before sharing Job Cards.")
+            )
+        return base_url.rstrip("/")
+
+    def _get_viber_share_message(self, share_url):
+        self.ensure_one()
+        total = "%s %s" % ("{:,.2f}".format(self.total_amount), self.currency_id.name or "")
+        lines = [
+            _("Job Card: %s") % self.name,
+            _("Customer: %s") % self.customer_id.display_name,
+        ]
+        if self.vehicle_id:
+            lines.append(_("Vehicle: %s") % self.vehicle_id.display_name)
+        if self.plate_no:
+            lines.append(_("Plate: %s") % self.plate_no)
+        lines.extend(
+            [
+                _("Total: %s") % total.strip(),
+                "",
+                _("View PDF: %s") % share_url,
+            ]
+        )
+        return "\n".join(lines)
+
+    def action_share_to_viber(self):
+        self.ensure_one()
+        if not self.id:
+            raise UserError(_("Save the Job Card before sharing it."))
+        if not self.customer_id:
+            raise UserError(_("Select a customer before sharing the Job Card."))
+        attachment = self._ensure_viber_share_attachment()
+        token = self._ensure_viber_share_token()
+        share_url = "%s/job_card/share/%s" % (self._get_viber_share_base_url(), token)
+        message = self._get_viber_share_message(share_url)
+        return {
+            "type": "ir.actions.client",
+            "tag": "workshop_job_card.share_to_viber",
+            "params": {
+                "title": _("Job Card %s") % self.name,
+                "message": message,
+                "url": share_url,
+                "download_url": "%s?download=1" % share_url,
+                "filename": attachment.name,
+            },
+        }
 
     def _get_latest_inspection(self, inspection_type):
         self.ensure_one()

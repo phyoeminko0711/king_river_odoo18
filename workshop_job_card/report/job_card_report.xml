@@ -15,9 +15,9 @@
     </record>
 
     <record id="action_report_workshop_job_card" model="ir.actions.report">
-        <field name="name">Job Card / Quotation</field>
+        <field name="name">Job Card Report</field>
         <field name="model">workshop.job.card</field>
-        <field name="report_type">qweb-pdf</field>
+        <field name="report_type">qweb-html</field>
         <field name="report_name">workshop_job_card.report_workshop_job_card_document</field>
         <field name="report_file">workshop_job_card.report_workshop_job_card_document</field>
         <field name="binding_model_id" ref="model_workshop_job_card"/>
@@ -33,7 +33,7 @@
                 <div class="page kr-job-card">
                     <style>
                         .kr-job-card {
-                            font-family: Arial, 'Noto Sans Myanmar', 'Myanmar Text', sans-serif;
+                            font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif;
                             font-size: 11px;
                             color: #000;
                         }

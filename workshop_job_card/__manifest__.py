@@ -1,6 +1,6 @@
 {
     "name": "Workshop Job Card",
-    "version": "18.0.1.18.0",
+    "version": "18.0.1.19.0",
     "summary": "Customer Job Cards integrated with Repair Orders",
     "category": "Repair/Operations",
     "author": "dev_pmk",
@@ -9,6 +9,8 @@
         "base",
         "mail",
         "repair",
+        "web",
+        "report_qweb_direct_print",
         "hr",
         "workshop_product_brand",
         "workshop_customer_vehicle",
@@ -36,6 +38,12 @@
     "demo": [
         "demo/workshop_job_card_demo.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "workshop_job_card/static/src/js/job_card_viber_share.js",
+            "workshop_job_card/static/src/xml/job_card_viber_share.xml",
+        ],
+    },
     "installable": True,
     "application": False,
 }

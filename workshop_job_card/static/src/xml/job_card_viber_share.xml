@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="workshop_job_card.ViberShareFallbackDialog">
+        <Dialog title="props.title" size="'md'">
+            <p class="mb-3">
+                Native sharing is not available in this browser. Use one of the options below.
+            </p>
+            <pre class="border rounded p-2 bg-100 text-break"
+                 style="white-space: pre-wrap;"
+                 t-esc="props.message"/>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="button" class="btn btn-primary" t-on-click="openPdf">
+                    Open PDF
+                </button>
+                <button type="button" class="btn btn-secondary" t-on-click="copyLink">
+                    Copy Link
+                </button>
+                <button type="button" class="btn btn-secondary" t-on-click="downloadPdf">
+                    Download PDF
+                </button>
+            </div>
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-secondary" t-on-click="props.close">
+                    Close
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>
