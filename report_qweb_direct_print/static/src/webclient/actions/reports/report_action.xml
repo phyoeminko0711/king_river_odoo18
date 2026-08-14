@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+
+    <t t-inherit="web.ReportAction" t-inherit-mode="extension">
+        <xpath expr="//iframe" position="replace">
+            <div class="container" style="width: 100vh; height: 100vh;">
+                <iframe t-ref="iframe" t-on-load="onIframeLoaded" class="h-100 w-100 d-block" t-att-src="reportUrl" />
+            </div>
+        </xpath>
+    </t>
+
+</templates>

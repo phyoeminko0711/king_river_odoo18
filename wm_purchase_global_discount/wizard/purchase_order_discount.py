@@ -47,7 +47,7 @@ class SaleOrderDiscount(models.TransientModel):
             'list_price': 0.0,
             'company_id': self.company_id.id,
             'taxes_id': None,
-            'categ_id': self.company_id.discount_purchase_product_categ_id.id
+            # 'categ_id': self.company_id.discount_purchase_product_categ_id.id
         }
 
     def prepare_discount_line_values(self, product, amount, taxes, description=None):

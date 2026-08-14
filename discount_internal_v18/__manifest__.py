@@ -7,7 +7,7 @@
     'description': """
 This module contains the modification about Sale,PO and Account.
     """,
-    'depends':  ['sale', 'account', 'purchase', 'wm_purchase_global_discount'],
+    'depends':  ['sale', 'account', 'purchase'],
     'data': [
         'views/sale.xml',
         'views/account_move.xml',

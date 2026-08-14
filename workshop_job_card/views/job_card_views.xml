@@ -46,6 +46,9 @@
                     <button name="action_create_repair_order" type="object"
                             string="Create Repair Order" class="oe_highlight"
                             invisible="state != 'approved' or repair_order_id"/>
+                    <button name="action_share_to_viber" type="object"
+                            string="Share to Viber" icon="fa-share-alt"
+                            invisible="not can_share_to_viber"/>
                     <button name="action_cancel" type="object" string="Cancel"
                             invisible="state not in ['draft', 'sent', 'approved']"/>
                     <button name="action_reset_to_draft" type="object"
@@ -64,6 +67,7 @@
                     <field name="delivery_inspection_completed" invisible="1"/>
                     <field name="customer_check_in_progress" invisible="1"/>
                     <field name="technician_inspection_in_progress" invisible="1"/>
+                    <field name="can_share_to_viber" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_repair_order" type="object"
                                 class="oe_stat_button" icon="fa-wrench"
