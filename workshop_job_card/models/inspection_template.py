@@ -60,6 +60,8 @@ class WorkshopInspectionTemplateLine(models.Model):
         ondelete="restrict",
     )
     required = fields.Boolean(default=True)
+    photo_required = fields.Boolean(string="Photo Required", default=False)
+    allow_multiple_photos = fields.Boolean(string="Allow Multiple Photos", default=True)
     active = fields.Boolean(default=True)
 
     def _default_result_type_id(self):
@@ -87,3 +89,12 @@ class WorkshopInspectionTemplateLine(models.Model):
                 and line.default_result_option_id.result_type_id != line.result_type_id
             ):
                 raise ValidationError(_("Default Result must belong to the selected Result Type."))
+
+    def init(self):
+        self.env.cr.execute(
+            """
+            UPDATE workshop_inspection_template_line
+               SET allow_multiple_photos = TRUE
+             WHERE allow_multiple_photos IS NULL
+            """
+        )

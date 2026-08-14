@@ -193,6 +193,8 @@ class WorkshopJobCardInspection(models.Model):
                             "result_option_id": option.id,
                             "result_name": option.name,
                             "required": line.required,
+                            "photo_required": line.photo_required,
+                            "allow_multiple_photos": line.allow_multiple_photos,
                             "remark_required": option.requires_remark,
                         },
                     )
@@ -260,7 +262,17 @@ class WorkshopJobCardInspectionLine(models.Model):
     result_is_positive = fields.Boolean(related="result_option_id.is_positive", readonly=True)
     remark = fields.Char()
     required = fields.Boolean(readonly=True)
+    photo_required = fields.Boolean(string="Photo Required", readonly=True)
+    allow_multiple_photos = fields.Boolean(string="Allow Multiple Photos", default=True, readonly=True)
     remark_required = fields.Boolean(readonly=True)
+    attachment_ids = fields.Many2many(
+        "ir.attachment",
+        "workshop_job_card_inspection_line_ir_attachment_rel",
+        "inspection_line_id",
+        "attachment_id",
+        string="Photos",
+        readonly=True,
+    )
 
     def init(self):
         self.env.cr.execute(
@@ -269,6 +281,13 @@ class WorkshopJobCardInspectionLine(models.Model):
                SET result_name = COALESCE(result_name, result)
              WHERE result_name IS NULL
                AND result IS NOT NULL
+            """
+        )
+        self.env.cr.execute(
+            """
+            UPDATE workshop_job_card_inspection_line
+               SET allow_multiple_photos = TRUE
+             WHERE allow_multiple_photos IS NULL
             """
         )
 
@@ -281,6 +300,8 @@ class WorkshopJobCardInspectionLine(models.Model):
             "description",
             "checkpoint_name",
             "required",
+            "photo_required",
+            "allow_multiple_photos",
             "remark_required",
         }
         # if protected_fields.intersection(vals):
