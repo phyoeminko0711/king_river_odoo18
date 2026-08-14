@@ -20,6 +20,7 @@
         <field name="report_type">qweb-html</field>
         <field name="report_name">workshop_job_card.report_workshop_job_card_document</field>
         <field name="report_file">workshop_job_card.report_workshop_job_card_document</field>
+        <field name="print_report_name">'Job_Card_%s' % (object.name or object.id)</field>
         <field name="binding_model_id" ref="model_workshop_job_card"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="workshop_job_card.paperformat_workshop_job_card"/>
@@ -30,7 +31,11 @@
             <t t-foreach="docs" t-as="doc">
                 <t t-set="company" t-value="doc.company_id or res_company"/>
                 <t t-set="currency" t-value="doc.currency_id or company.currency_id"/>
+                <t t-set="report_filename" t-value="('Job_Card_%s' % (doc.name or doc.id)).replace('/', '_').replace(' ', '_')"/>
                 <div class="page kr-job-card">
+                    <script type="text/javascript">
+                        document.title = "<t t-out="report_filename"/>";
+                    </script>
                     <style>
                         .kr-job-card {
                             font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif;
