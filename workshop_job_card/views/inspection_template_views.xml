@@ -40,8 +40,23 @@
                                     <field name="default_result_option_id"
                                            domain="[('result_type_id', '=', result_type_id), ('active', '=', True)]"/>
                                     <field name="required"/>
+                                    <field name="photo_required"/>
+                                    <field name="allow_multiple_photos"/>
                                     <field name="active"/>
                                 </list>
+                                <form>
+                                    <group>
+                                        <field name="sequence"/>
+                                        <field name="description" string="Checkpoint"/>
+                                        <field name="result_type_id"/>
+                                        <field name="default_result_option_id"
+                                               domain="[('result_type_id', '=', result_type_id), ('active', '=', True)]"/>
+                                        <field name="required"/>
+                                        <field name="photo_required"/>
+                                        <field name="allow_multiple_photos"/>
+                                        <field name="active"/>
+                                    </group>
+                                </form>
                             </field>
                         </page>
                     </notebook>

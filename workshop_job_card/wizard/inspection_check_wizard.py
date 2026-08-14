@@ -53,6 +53,20 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
         domain="[('id', 'in', current_option_ids)]",
     )
     current_remark = fields.Char(string="Remark")
+    current_attachment_ids = fields.Many2many(
+        "ir.attachment",
+        string="Photos",
+        compute="_compute_current_attachment_ids",
+        inverse="_inverse_current_attachment_ids",
+    )
+    current_photo_required = fields.Boolean(
+        related="current_line_id.photo_required",
+        readonly=True,
+    )
+    current_allow_multiple_photos = fields.Boolean(
+        related="current_line_id.allow_multiple_photos",
+        readonly=True,
+    )
     can_go_previous = fields.Boolean(compute="_compute_progress")
 
     @api.model_create_multi
@@ -84,6 +98,8 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
                         "result_option_id": False,
                         "default_result_option_id": line.default_result_option_id.id,
                         "required": line.required,
+                        "photo_required": line.photo_required,
+                        "allow_multiple_photos": line.allow_multiple_photos,
                     }
                     for line in template_lines
                 ]
@@ -102,6 +118,16 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
     def _compute_current_options(self):
         for wizard in self:
             wizard.current_option_ids = wizard.current_line_id.result_type_id.option_ids.filtered("active")
+
+    @api.depends("current_line_id", "current_line_id.attachment_ids")
+    def _compute_current_attachment_ids(self):
+        for wizard in self:
+            wizard.current_attachment_ids = wizard.current_line_id.attachment_ids
+
+    def _inverse_current_attachment_ids(self):
+        for wizard in self:
+            if wizard.current_line_id:
+                wizard.current_line_id.attachment_ids = wizard.current_attachment_ids
 
     @api.depends("line_ids.result_option_id", "line_ids.sequence", "current_line_id")
     def _compute_progress(self):
@@ -146,6 +172,8 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
             raise ValidationError(_("Please select a result for this checkpoint."))
         if self.current_result_option_id.result_type_id != self.current_line_id.result_type_id:
             raise ValidationError(_("Selected result is not valid for this checkpoint."))
+        self.current_line_id.attachment_ids = self.current_attachment_ids
+        self.current_line_id._validate_photo_requirements()
         # if self.current_result_option_id.requires_remark and not self.current_remark:
         #     raise ValidationError(_("Please enter a remark for this result."))
         self.current_line_id.write(
@@ -178,6 +206,7 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
         self.ensure_one()
         if self.current_line_id:
             self.current_line_id.remark = self.current_remark
+            self.current_line_id.attachment_ids = self.current_attachment_ids
         ordered_lines = self.line_ids.sorted(lambda line: (line.sequence, line.id))
         if self.current_line_id and self.current_line_id.id in ordered_lines.ids:
             current_index = ordered_lines.ids.index(self.current_line_id.id)
@@ -205,6 +234,8 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
             missing_results = wizard.line_ids.filtered(lambda line: not line.result_option_id)
             if missing_results:
                 raise ValidationError(_("Every checkpoint must have a result."))
+            for line in wizard.line_ids:
+                line._validate_photo_requirements()
             # missing_remarks = wizard.line_ids.filtered(
             #     lambda line: line.result_option_id.requires_remark
             #     and not line.remark
@@ -243,12 +274,28 @@ class WorkshopInspectionCheckWizard(models.TransientModel):
                             "result_option_id": line.result_option_id.id,
                             "result_name": line.result_option_id.name,
                             "remark": line.remark,
+                            "required": line.required,
+                            "photo_required": line.photo_required,
+                            "allow_multiple_photos": line.allow_multiple_photos,
                         },
                     )
                     for line in self.line_ids
                 ],
             }
         )
+        wizard_lines = self.line_ids.sorted(lambda line: (line.sequence, line.id))
+        history_lines = inspection.line_ids.sorted(lambda line: (line.sequence, line.id))
+        for wizard_line, history_line in zip(wizard_lines, history_lines):
+            copied_attachments = self.env["ir.attachment"]
+            for attachment in wizard_line.attachment_ids:
+                copied_attachments |= attachment.copy(
+                    {
+                        "res_model": "workshop.job.card.inspection.line",
+                        "res_id": history_line.id,
+                    }
+                )
+            if copied_attachments:
+                history_line.with_context(skip_inspection_write_protection=True).attachment_ids = copied_attachments
         inspection.message_post(body=_("Inspection history created from check wizard."))
 
     def _finalize_and_close(self):
@@ -295,9 +342,31 @@ class WorkshopInspectionCheckWizardLine(models.TransientModel):
     description = fields.Text(readonly=True)
     remark = fields.Char()
     required = fields.Boolean(readonly=True)
+    photo_required = fields.Boolean(string="Photo Required", readonly=True)
+    allow_multiple_photos = fields.Boolean(string="Allow Multiple Photos", default=True, readonly=True)
+    attachment_ids = fields.Many2many(
+        "ir.attachment",
+        "workshop_inspection_check_wizard_line_ir_attachment_rel",
+        "wizard_line_id",
+        "attachment_id",
+        string="Photos",
+    )
     is_answered = fields.Boolean(compute="_compute_is_answered", store=True)
 
     @api.depends("result_option_id")
     def _compute_is_answered(self):
         for line in self:
             line.is_answered = bool(line.result_option_id)
+
+    @api.constrains("attachment_ids", "photo_required", "allow_multiple_photos")
+    def _check_photo_requirements(self):
+        for line in self:
+            if not line.allow_multiple_photos and len(line.attachment_ids) > 1:
+                raise ValidationError(_("Only one photo is allowed for this checkpoint."))
+
+    def _validate_photo_requirements(self):
+        for line in self:
+            if line.photo_required and not line.attachment_ids:
+                raise ValidationError(_("Please attach at least one photo for this checkpoint."))
+            if not line.allow_multiple_photos and len(line.attachment_ids) > 1:
+                raise ValidationError(_("Only one photo is allowed for this checkpoint."))

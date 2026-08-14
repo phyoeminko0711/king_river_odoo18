@@ -24,6 +24,8 @@
                 <field name="total_checkpoint_count" invisible="1"/>
                 <field name="current_checkpoint_number" invisible="1"/>
                 <field name="can_go_previous" invisible="1"/>
+                <field name="current_photo_required" invisible="1"/>
+                <field name="current_allow_multiple_photos" invisible="1"/>
                 <div class="text-center">
                     <field name="progress_text" readonly="1" nolabel="1" class="fw-bold"/>
                     <h2 invisible="not current_line_id">
@@ -42,6 +44,12 @@
                     <field name="current_remark"
                            placeholder="Enter remark..."
                            invisible="not current_line_id"/>
+                    <group string="Photos" invisible="not current_line_id">
+                        <field name="current_attachment_ids"
+                               widget="many2many_binary"
+                               nolabel="1"
+                               context="{'default_res_model': 'workshop.inspection.check.wizard.line', 'default_res_id': current_line_id}"/>
+                    </group>
                 </div>
                 <footer>
                     <button name="action_previous_checkpoint"

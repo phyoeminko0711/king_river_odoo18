@@ -1,3 +1,5 @@
+import base64
+
 from lxml import etree
 from psycopg2 import IntegrityError
 
@@ -525,6 +527,65 @@ class TestWorkshopJobCard(TransactionCase):
         self.assertEqual(inspection.state, "completed")
         self.assertEqual(len(inspection.line_ids), total)
         self.assertTrue(card.customer_check_completed)
+
+    def test_inspection_required_photo_is_copied_to_history_line(self):
+        card = self._create_card()
+        template = self.env.ref("workshop_job_card.inspection_template_customer_check")
+        template_line = template.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
+        template_line.write(
+            {
+                "photo_required": True,
+                "allow_multiple_photos": False,
+            }
+        )
+        wizard = self._wizard_from_action(card.action_customer_check())
+        first_line = wizard.current_line_id
+        option = first_line.result_type_id.option_ids.filtered(
+            lambda result: result.active and result.is_positive
+        )[:1]
+        wizard.current_result_option_id = option.id
+
+        with self.assertRaisesRegex(
+            ValidationError,
+            "Please attach at least one photo for this checkpoint.",
+        ):
+            wizard.action_answer_selected()
+
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "windshield.jpg",
+                "type": "binary",
+                "datas": base64.b64encode(b"fake image"),
+                "mimetype": "image/jpeg",
+                "res_model": "workshop.inspection.check.wizard.line",
+                "res_id": first_line.id,
+            }
+        )
+        first_line.attachment_ids = attachment
+        wizard.action_answer_selected()
+
+        wizard.action_previous_checkpoint()
+        self.assertEqual(wizard.current_line_id, first_line)
+        self.assertEqual(first_line.attachment_ids, attachment)
+        wizard.current_result_option_id = option.id
+        wizard.action_answer_selected()
+
+        while wizard.current_line_id:
+            option = wizard.current_line_id.result_type_id.option_ids.filtered(
+                lambda result: result.active and result.is_positive
+            )[:1]
+            wizard.current_result_option_id = option.id
+            wizard.action_answer_selected()
+
+        inspection = card._get_latest_inspection("customer_check")
+        history_line = inspection.line_ids.sorted(lambda line: (line.sequence, line.id))[0]
+        self.assertEqual(len(history_line.attachment_ids), 1)
+        self.assertNotEqual(history_line.attachment_ids, attachment)
+        self.assertEqual(
+            history_line.attachment_ids.res_model,
+            "workshop.job.card.inspection.line",
+        )
+        self.assertEqual(history_line.attachment_ids.res_id, history_line.id)
 
     def test_template_change_does_not_change_completed_history(self):
         card = self._create_card()

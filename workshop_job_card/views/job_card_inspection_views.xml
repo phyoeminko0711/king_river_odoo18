@@ -60,9 +60,24 @@
                                     <field name="result_option_id" column_invisible="True"/>
                                     <field name="result_is_positive" column_invisible="True"/>
                                     <field name="remark"/>
+                                    <field name="attachment_ids" string="Photos" widget="many2many_binary"/>
                                     <field name="required" column_invisible="True"/>
+                                    <field name="photo_required" column_invisible="True"/>
+                                    <field name="allow_multiple_photos" column_invisible="True"/>
                                     <field name="remark_required" column_invisible="True"/>
                                 </list>
+                                <form create="0" edit="0" delete="0">
+                                    <group>
+                                        <field name="sequence" readonly="1"/>
+                                        <field name="checkpoint_name" readonly="1"/>
+                                        <field name="result_name" readonly="1" widget="badge"/>
+                                        <field name="remark" readonly="1"/>
+                                        <field name="photo_required" readonly="1"/>
+                                    </group>
+                                    <group string="Photos">
+                                        <field name="attachment_ids" widget="many2many_binary" readonly="1" nolabel="1"/>
+                                    </group>
+                                </form>
                             </field>
                         </page>
                         <page string="General Remark">
