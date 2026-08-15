@@ -50,6 +50,7 @@ class StockLandedCost(models.Model):
             valuation_lines = self.env["stock.valuation.adjustment.lines"]
             total_quantity = 0.0
             total_final_cost = 0.0
+            total_additional_cost = 0.0
             for move_values in moves.values():
                 quantity = move_values.get("quantity", 0.0)
                 if float_is_zero(quantity, precision_rounding=product.uom_id.rounding):
@@ -57,6 +58,7 @@ class StockLandedCost(models.Model):
                 valuation_lines |= move_values["lines"]
                 total_quantity += quantity
                 total_final_cost += move_values.get("former_cost", 0.0) + move_values["additional"]
+                total_additional_cost += move_values["additional"]
 
             if (
                 valuation_lines
@@ -67,6 +69,7 @@ class StockLandedCost(models.Model):
                     "valuation_lines": valuation_lines,
                     "quantity": total_quantity,
                     "landed_unit_cost": total_final_cost / total_quantity if total_quantity else 0.0,
+                    "landed_cost_unit_amount": total_additional_cost / total_quantity if total_quantity else 0.0,
                 }
 
         return groups
@@ -84,6 +87,7 @@ class StockLandedCost(models.Model):
         valuation_lines,
         rule_line,
         landed_unit_cost,
+        landed_cost_unit_amount,
         effective_date,
     ):
         """Prepare sale.price.update values from a validated landed cost product group."""
@@ -111,6 +115,37 @@ class StockLandedCost(models.Model):
             rule_currency,
         )
         purchase_order, purchase_line = self._resolve_purchase_source_from_landed_lines(valuation_lines)
+        source_currency = company_currency
+        foreign_purchase_unit_price = 0.0
+        original_conversion_date = effective_date
+        original_currency_value = 0.0
+        original_purchase_cost_company = 0.0
+        original_total_cost = landed_unit_cost
+        if purchase_line and purchase_order and purchase_order.currency_id != company_currency:
+            source_currency = purchase_order.currency_id
+            foreign_purchase_unit_price = purchase_line.product_uom._compute_price(
+                purchase_line.price_unit,
+                product.uom_id,
+            )
+            original_conversion_date = (
+                purchase_order.date_approve
+                or purchase_order.date_order
+                or effective_date
+            )
+            original_conversion_date = fields.Date.to_date(original_conversion_date)
+            original_currency_value = source_currency._convert(
+                1.0,
+                company_currency,
+                self.company_id,
+                original_conversion_date,
+            )
+            original_purchase_cost_company = source_currency._convert(
+                foreign_purchase_unit_price,
+                company_currency,
+                self.company_id,
+                original_conversion_date,
+            )
+            original_total_cost = original_purchase_cost_company + landed_cost_unit_amount
         return {
             "company_id": self.company_id.id,
             "currency_id": rule_currency.id,
@@ -125,8 +160,22 @@ class StockLandedCost(models.Model):
                 )
             ),
             "purchase_uom_id": product.uom_id.id,
-            "purchase_price": landed_unit_cost,
-            "source_currency_id": company_currency.id,
+            "purchase_price": foreign_purchase_unit_price or landed_unit_cost,
+            "source_currency_id": source_currency.id,
+            "foreign_purchase_unit_price": foreign_purchase_unit_price,
+            "original_conversion_date": original_conversion_date,
+            "original_currency_value": original_currency_value,
+            "original_purchase_cost_company": original_purchase_cost_company,
+            "landed_cost_unit_amount": landed_cost_unit_amount,
+            "original_total_cost": original_total_cost,
+            "last_revaluation_date": original_conversion_date,
+            "last_revaluation_rate": original_currency_value,
+            "last_revalued_cost": original_total_cost,
+            "last_sale_price": calculated_sale_price,
+            "previous_exchange_rate_value": original_currency_value,
+            "current_exchange_rate_value": original_currency_value,
+            "previous_converted_purchase_cost": original_purchase_cost_company,
+            "current_converted_purchase_cost": original_purchase_cost_company,
             "landed_unit_cost": converted_landed_unit_cost,
             "converted_purchase_price": converted_landed_unit_cost,
             "old_sale_price": old_sale_price,
@@ -206,6 +255,7 @@ class StockLandedCost(models.Model):
             group_values["valuation_lines"],
             rule_line,
             landed_unit_cost,
+            group_values.get("landed_cost_unit_amount", 0.0),
             effective_date,
         )
 

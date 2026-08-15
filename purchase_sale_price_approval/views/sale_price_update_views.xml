@@ -8,6 +8,8 @@
                 <field name="name" string="Reference"/>
                 <field name="purchase_order_id" string="Purchase Order"/>
                 <field name="landed_cost_id" string="Landed Cost"/>
+                <field name="cost_source" string="Source"/>
+                <field name="source_currency_id" string="Currency"/>
                 <field name="vendor_id" string="Vendor"/>
                 <field name="product_id" string="Product"/>
                 <field name="approved_by" string="Approved By"/>
@@ -15,13 +17,21 @@
                 <filter name="approved" string="Approved" domain="[('state', '=', 'approved')]"/>
                 <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
                 <filter name="cancelled" string="Cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <filter name="superseded" string="Superseded" domain="[('state', '=', 'superseded')]"/>
+                <filter name="currency_revaluation" string="Currency Revaluation"
+                        domain="[('cost_source', '=', 'currency_revaluation')]"/>
+                <filter name="landed_cost_source" string="Landed Cost"
+                        domain="[('cost_source', '=', 'landed_cost')]"/>
                 <separator/>
                 <filter name="approval_date" string="Approval Date" date="approved_date"/>
                 <group expand="0" string="Group By">
                     <filter name="group_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_currency" string="Source Currency" context="{'group_by': 'source_currency_id'}"/>
+                    <filter name="group_source" string="Source" context="{'group_by': 'cost_source'}"/>
                     <filter name="group_landed_cost" string="Landed Cost" context="{'group_by': 'landed_cost_id'}"/>
                     <filter name="group_vendor" string="Vendor" context="{'group_by': 'vendor_id'}"/>
                     <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
+                    <filter name="group_effective_date" string="Date" context="{'group_by': 'effective_date'}"/>
                     <filter name="group_effective_month" string="Effective Month"
                             context="{'group_by': 'effective_date:month'}"/>
                 </group>
@@ -35,14 +45,25 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name" string="Reference"/>
+                <field name="approved_date" string="Date" optional="show"/>
+                <field name="cost_source" string="Source"/>
                 <field name="landed_cost_id" string="Landed Cost"/>
                 <field name="purchase_order_id" string="Purchase Order" optional="hide"/>
                 <field name="vendor_id" string="Vendor"/>
                 <field name="product_id" string="Product"/>
+                <field name="source_currency_id" string="Currency" optional="show"/>
+                <field name="foreign_purchase_unit_price" string="Foreign PO Price" optional="show"/>
+                <field name="previous_currency_value" string="Previous Currency Value" optional="hide"/>
+                <field name="current_currency_value" string="New Currency Value" optional="hide"/>
+                <field name="previous_exchange_rate_value" string="Previous Exchange Rate" optional="hide"/>
+                <field name="current_exchange_rate_value" string="New Exchange Rate" optional="hide"/>
+                <field name="previous_converted_purchase_cost" string="Previous Converted Cost" optional="hide"/>
+                <field name="current_converted_purchase_cost" string="New Converted Cost" optional="hide"/>
+                <field name="landed_cost_unit_amount" string="Landed Cost" optional="hide"/>
                 <field name="landed_unit_cost" string="Landed Unit Cost"/>
                 <field name="purchase_price" string="Purchase Price" optional="hide"/>
                 <field name="old_sale_price" string="Previous Sale Price"/>
-                <field name="calculated_sale_price" string="Proposed Sale Price"/>
+                <field name="calculated_sale_price" string="New Sale Price"/>
                 <field name="approved_sale_price" string="Approved Sale Price"/>
                 <field name="effective_date" string="Effective Date"/>
                 <field name="state" widget="badge"
@@ -86,6 +107,7 @@
                         </h1>
                     </div>
                     <field name="cost_source" invisible="1"/>
+                    <field name="company_currency_id" invisible="1"/>
                     <group>
                         <group string="Purchase Information">
                             <field name="landed_cost_id" string="Landed Cost" readonly="1"
@@ -116,6 +138,36 @@
                             <field name="approved_sale_price" string="Approved Sale Price" readonly="1"
                                    groups="!purchase_sale_price_approval.group_sale_price_manager"/>
                             <field name="current_product_sale_price" string="Current Sale Price" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Source Cost" invisible="not foreign_purchase_unit_price">
+                        <group>
+                            <field name="source_currency_id" string="Source Currency" readonly="1"/>
+                            <field name="foreign_purchase_unit_price" string="Foreign PO Unit Price" readonly="1"/>
+                            <field name="original_conversion_date" string="Original Conversion Date" readonly="1"/>
+                            <field name="original_currency_value" string="Original Currency Value" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="original_purchase_cost_company" string="Original Purchase Cost" readonly="1"/>
+                            <field name="landed_cost_unit_amount" string="Landed Cost Allocation" readonly="1"/>
+                            <field name="original_total_cost" string="Original Total Cost" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Currency Revaluation" invisible="cost_source != 'currency_revaluation'">
+                        <group>
+                            <field name="previous_revaluation_date" string="Previous Revaluation Date" readonly="1"/>
+                            <field name="revaluation_date" string="Revaluation Date" readonly="1"/>
+                            <field name="previous_exchange_rate_value" string="Previous Exchange Rate" readonly="1"/>
+                            <field name="current_exchange_rate_value" string="New Exchange Rate" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="previous_converted_purchase_cost" string="Previous Converted Purchase Cost" readonly="1"/>
+                            <field name="current_converted_purchase_cost" string="Current Converted Purchase Cost" readonly="1"/>
+                            <field name="previous_cost_basis" string="Previous Cost Basis" readonly="1"/>
+                            <field name="revalued_purchase_cost" string="Revalued Purchase Cost" readonly="1"/>
+                            <field name="revalued_cost_basis" string="Revalued Cost Basis" readonly="1"/>
+                            <field name="cost_difference" string="Cost Difference" readonly="1"/>
+                            <field name="cost_difference_percentage" string="Cost Difference %" readonly="1"/>
                         </group>
                     </group>
                     <group>
@@ -156,6 +208,8 @@
         <field name="name">Sale Price Updates</field>
         <field name="res_model">sale.price.update</field>
         <field name="view_mode">list,form,activity</field>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
         <field name="search_view_id" ref="view_sale_price_update_search"/>
     </record>
 </odoo>
