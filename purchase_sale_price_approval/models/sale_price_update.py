@@ -463,7 +463,7 @@ class SalePriceUpdate(models.Model):
             return False
         return True
 
-    def _get_latest_currency_revaluation_sources(self):
+    def _get_latest_currency_revaluation_sources(self, currency=False, company=False):
         """Return latest reliable approved foreign-currency pricing source per product/company/currency."""
         domain = [
             ("state", "=", "approved"),
@@ -475,6 +475,10 @@ class SalePriceUpdate(models.Model):
             ("source_currency_id", "!=", False),
             ("rule_line_id", "!=", False),
         ]
+        if currency:
+            domain.append(("source_currency_id", "=", currency.id))
+        if company:
+            domain.append(("company_id", "=", company.id))
         candidates = self.sudo().search(
             domain,
             order="effective_date desc, approved_date desc, id desc",
@@ -624,7 +628,7 @@ class SalePriceUpdate(models.Model):
             "state": "approved",
             "cost_source": "currency_revaluation",
             "previous_update_id": source.id,
-            "note": _("Automatically applied by Currency Sale Price Revaluation scheduled action."),
+            "note": _("Automatically applied by Currency Sale Price Revaluation."),
         }
 
     def _find_duplicate_currency_revaluation(self, vals):
@@ -720,7 +724,7 @@ class SalePriceUpdate(models.Model):
                 duplicate.display_name,
             )
             return duplicate, False
-        update = self.sudo().create(vals)
+        update = self.with_context(skip_currency_sale_price_revaluation=True).sudo().create(vals)
         company = update.company_id
         company_currency = company.currency_id
         approved_sale_price_company = update.currency_id._convert(
@@ -729,7 +733,7 @@ class SalePriceUpdate(models.Model):
             company,
             update.revaluation_date or update.effective_date,
         )
-        update.product_tmpl_id.with_company(company).sudo().write(
+        update.product_tmpl_id.with_context(skip_currency_sale_price_revaluation=True).with_company(company).sudo().write(
             {"list_price": approved_sale_price_company}
         )
         update.message_post(
@@ -755,66 +759,105 @@ class SalePriceUpdate(models.Model):
         update._log_applied_currency_revaluation()
         return update, True
 
+    def _get_currency_revaluation_skip_reason(self, source, revaluation_date):
+        previous_converted_purchase_cost = (
+            source.current_converted_purchase_cost
+            or source.current_currency_value
+            or source.original_purchase_cost_company
+        )
+        current_converted_purchase_cost = source.source_currency_id._convert(
+            source.foreign_purchase_unit_price,
+            source.company_id.currency_id,
+            source.company_id,
+            revaluation_date,
+        )
+        if (
+            float_compare(
+                current_converted_purchase_cost,
+                previous_converted_purchase_cost,
+                precision_rounding=source.company_id.currency_id.rounding,
+            )
+            <= 0
+        ):
+            return "rate"
+        return "price"
+
+    @api.model
+    def _revalue_products_for_currency(self, currency=False, company=False, revaluation_date=False):
+        revaluation_date = revaluation_date or fields.Date.context_today(self)
+        sources = self._get_latest_currency_revaluation_sources(currency=currency, company=company)
+        stats = {
+            "evaluated": 0,
+            "created": 0,
+            "skipped_rate": 0,
+            "skipped_invalid": 0,
+            "skipped_price": 0,
+            "skipped_duplicate": 0,
+        }
+        for source in sources:
+            stats["evaluated"] += 1
+            try:
+                with self.env.cr.savepoint():
+                    vals = self._prepare_currency_revaluation_values(source, revaluation_date)
+                    if not vals:
+                        skip_reason = self._get_currency_revaluation_skip_reason(source, revaluation_date)
+                        if skip_reason == "rate":
+                            stats["skipped_rate"] += 1
+                        else:
+                            stats["skipped_price"] += 1
+                        continue
+                    _update, did_create = self._apply_currency_revaluation_values(vals)
+                    if not did_create:
+                        stats["skipped_duplicate"] += 1
+                        continue
+                    stats["created"] += 1
+            except Exception:
+                stats["skipped_invalid"] += 1
+                _logger.exception(
+                    "Currency sale price revaluation skipped product %s due to invalid source data.",
+                    source.product_id.display_name,
+                )
+        return stats
+
+    @api.model
+    def _log_currency_revaluation_summary(self, stats, currency=False, revaluation_date=False, rate_change=False):
+        if rate_change:
+            _logger.info(
+                "Currency rate change revaluation completed. Currency: %s; Date: %s; "
+                "Products evaluated: %s; Prices increased: %s; Skipped same/lower: %s; "
+                "Skipped calculated price not higher: %s; Skipped duplicate: %s; "
+                "Skipped invalid source: %s.",
+                currency.display_name if currency else _("All currencies"),
+                revaluation_date,
+                stats["evaluated"],
+                stats["created"],
+                stats["skipped_rate"],
+                stats["skipped_price"],
+                stats["skipped_duplicate"],
+                stats["skipped_invalid"],
+            )
+            return
+        _logger.info(
+            "Currency Sale Price Revaluation completed. Products evaluated: %s; "
+            "Prices increased: %s; Skipped - same/lower rate: %s; "
+            "Skipped - calculated price not higher: %s; Skipped - duplicate: %s; "
+            "Skipped - invalid source: %s.",
+            stats["evaluated"],
+            stats["created"],
+            stats["skipped_rate"],
+            stats["skipped_price"],
+            stats["skipped_duplicate"],
+            stats["skipped_invalid"],
+        )
+
     @api.model
     def _cron_currency_sale_price_revaluation(self):
         revaluation_date = self.env.context.get(
             "revaluation_date",
             fields.Date.context_today(self),
         )
-        sources = self._get_latest_currency_revaluation_sources()
-        evaluated = created = skipped_rate = skipped_invalid = skipped_price = skipped_duplicate = 0
-        for source in sources:
-            evaluated += 1
-            try:
-                with self.env.cr.savepoint():
-                    vals = self._prepare_currency_revaluation_values(source, revaluation_date)
-                    if not vals:
-                        previous_converted_purchase_cost = (
-                            source.current_converted_purchase_cost
-                            or source.current_currency_value
-                            or source.original_purchase_cost_company
-                        )
-                        current_converted_purchase_cost = source.source_currency_id._convert(
-                            source.foreign_purchase_unit_price,
-                            source.company_id.currency_id,
-                            source.company_id,
-                            revaluation_date,
-                        )
-                        if (
-                            float_compare(
-                                current_converted_purchase_cost,
-                                previous_converted_purchase_cost,
-                                precision_rounding=source.company_id.currency_id.rounding,
-                            )
-                            <= 0
-                        ):
-                            skipped_rate += 1
-                        else:
-                            skipped_price += 1
-                        continue
-                    _update, did_create = self._apply_currency_revaluation_values(vals)
-                    if not did_create:
-                        skipped_duplicate += 1
-                        continue
-                    created += 1
-            except Exception:
-                skipped_invalid += 1
-                _logger.exception(
-                    "Currency sale price revaluation skipped product %s due to invalid source data.",
-                    source.product_id.display_name,
-                )
-        _logger.info(
-            "Currency Sale Price Revaluation completed. Products evaluated: %s; "
-            "Prices increased: %s; Skipped - same/lower rate: %s; "
-            "Skipped - calculated price not higher: %s; Skipped - duplicate: %s; "
-            "Skipped - invalid source: %s.",
-            evaluated,
-            created,
-            skipped_rate,
-            skipped_price,
-            skipped_duplicate,
-            skipped_invalid,
-        )
+        stats = self._revalue_products_for_currency(revaluation_date=revaluation_date)
+        self._log_currency_revaluation_summary(stats, revaluation_date=revaluation_date)
         return True
 
     def _post_approval_messages(self):

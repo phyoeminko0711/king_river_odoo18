@@ -99,6 +99,19 @@ class TestLandedCostSalePriceUpdate(TransactionCase):
             }
         )
 
+    def _create_company_rate(self, currency, date, company_value, trigger=True):
+        rate_model = self.env["res.currency.rate"]
+        if not trigger:
+            rate_model = rate_model.with_context(skip_currency_sale_price_revaluation=True)
+        return rate_model.create(
+            {
+                "name": date,
+                "currency_id": currency.id,
+                "company_id": self.company.id,
+                "rate": 1.0 / company_value,
+            }
+        )
+
     def _create_foreign_purchase_line(self, product, currency, price_unit, date="2026-08-15"):
         vendor = self.env["res.partner"].create({"name": "Foreign Vendor %s" % currency.name})
         purchase_order = self.env["purchase.order"].create(
@@ -533,3 +546,301 @@ class TestLandedCostSalePriceUpdate(TransactionCase):
         self.assertFalse(revaluations)
         self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 6000.0)
         self.assertAlmostEqual(company_product.product_tmpl_id.list_price, 6000.0)
+
+    def test_currency_rate_create_triggers_revaluation_without_cron(self):
+        usd = self._create_foreign_currency("XEA", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        revaluation = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-16")),
+            ]
+        )
+        self.assertEqual(len(revaluation), 1)
+        self.assertEqual(revaluation.state, "approved")
+        self.assertAlmostEqual(revaluation.current_exchange_rate_value, 5000.0)
+        self.assertAlmostEqual(revaluation.approved_sale_price, 7200.0)
+        self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 7200.0)
+
+    def test_currency_rate_create_same_effective_rate_does_not_duplicate(self):
+        usd = self._create_foreign_currency("XEB", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        revaluations = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-16")),
+            ]
+        )
+        self.assertEqual(len(revaluations), 1)
+        self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 7200.0)
+
+    def test_currency_rate_decrease_does_not_lower_sale_price(self):
+        usd = self._create_foreign_currency("XEC", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        self._create_company_rate(usd, "2026-08-17", 4500.0)
+
+        decrease_revaluation = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-17")),
+            ]
+        )
+        self.assertFalse(decrease_revaluation)
+        self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 7200.0)
+
+    def test_currency_rate_later_increase_uses_latest_revaluation_basis(self):
+        usd = self._create_foreign_currency("XED", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+        self._create_company_rate(usd, "2026-08-17", 4500.0)
+
+        self._create_company_rate(usd, "2026-08-18", 5500.0)
+
+        increase_revaluation = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-18")),
+            ]
+        )
+        self.assertEqual(len(increase_revaluation), 1)
+        self.assertAlmostEqual(increase_revaluation.revalued_cost_basis, 6500.0)
+        self.assertAlmostEqual(increase_revaluation.approved_sale_price, 7800.0)
+        self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 7800.0)
+
+    def test_currency_rate_change_only_revalues_matching_currency_products(self):
+        usd = self._create_foreign_currency("XEE", "Event USD")
+        thb = self._create_foreign_currency("XEF", "Event THB")
+        product_two = self.env["product.product"].create(
+            {
+                "name": "THB Event Product",
+                "type": "consu",
+                "uom_id": self.uom.id,
+                "uom_po_id": self.uom.id,
+                "list_price": 4800.0,
+            }
+        )
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        self._create_company_rate(thb, "2026-08-15", 3000.0, trigger=False)
+        _usd_po, usd_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        _thb_po, thb_line = self._create_foreign_purchase_line(product_two, thb, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, usd_line)
+        self._create_approved_foreign_landed_source(
+            product_two,
+            thb,
+            thb_line,
+            rate=3000.0,
+            landed_cost=1000.0,
+            sale_price=4800.0,
+        )
+
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        updates = self.env["sale.price.update"].search(
+            [("cost_source", "=", "currency_revaluation")]
+        )
+        self.assertIn(self.product, updates.product_id)
+        self.assertNotIn(product_two, updates.product_id)
+        self.assertAlmostEqual(self.product.product_tmpl_id.list_price, 7200.0)
+        self.assertAlmostEqual(product_two.product_tmpl_id.list_price, 4800.0)
+
+    def test_currency_rate_write_triggers_revaluation(self):
+        usd = self._create_foreign_currency("XEG", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+        rate = self._create_company_rate(usd, "2026-08-16", 4000.0, trigger=False)
+
+        rate.write({"rate": 1.0 / 5000.0})
+
+        revaluation = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-16")),
+            ]
+        )
+        self.assertEqual(len(revaluation), 1)
+        self.assertAlmostEqual(revaluation.approved_sale_price, 7200.0)
+
+    def test_currency_rate_write_date_uses_new_effective_date(self):
+        usd = self._create_foreign_currency("XEH", "Event USD")
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        _purchase_order, purchase_line = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        self._create_approved_foreign_landed_source(self.product, usd, purchase_line)
+        rate = self._create_company_rate(usd, "2026-08-17", 4500.0, trigger=False)
+
+        rate.write({"name": "2026-08-18", "rate": 1.0 / 5500.0})
+
+        revaluation = self.env["sale.price.update"].search(
+            [
+                ("product_id", "=", self.product.id),
+                ("cost_source", "=", "currency_revaluation"),
+                ("revaluation_date", "=", fields.Date.from_string("2026-08-18")),
+            ]
+        )
+        self.assertEqual(len(revaluation), 1)
+        self.assertAlmostEqual(revaluation.current_exchange_rate_value, 5500.0)
+        self.assertAlmostEqual(revaluation.approved_sale_price, 7800.0)
+
+    def test_company_specific_currency_rate_only_revalues_that_company(self):
+        usd = self._create_foreign_currency("XEI", "Event USD")
+        company_two = self.env["res.company"].create({"name": "Second Revaluation Company"})
+        rule_two = self.env["sale.price.rule"].create(
+            {
+                "name": "Second Company Rule",
+                "company_id": company_two.id,
+                "currency_id": self.currency.id,
+                "line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "apply_on": "all",
+                            "from_amount": 0.0,
+                            "to_amount": 0.0,
+                            "markup_type": "percentage",
+                            "markup_value": 20.0,
+                            "valid_from": "2026-01-01",
+                        },
+                    )
+                ],
+            }
+        )
+        rule_two.action_activate()
+        product_two = self.env["product.product"].create(
+            {
+                "name": "Second Company Currency Product",
+                "type": "consu",
+                "uom_id": self.uom.id,
+                "uom_po_id": self.uom.id,
+                "list_price": 6000.0,
+            }
+        )
+        self._create_company_rate(usd, "2026-08-15", 4000.0, trigger=False)
+        self.env["res.currency.rate"].with_context(skip_currency_sale_price_revaluation=True).create(
+            {
+                "name": "2026-08-15",
+                "currency_id": usd.id,
+                "company_id": company_two.id,
+                "rate": 1.0 / 4000.0,
+            }
+        )
+        _po_one, line_one = self._create_foreign_purchase_line(self.product, usd, 1.0)
+        vendor_two = self.env["res.partner"].create({"name": "Second Company Vendor"})
+        po_two = self.env["purchase.order"].create(
+            {
+                "partner_id": vendor_two.id,
+                "currency_id": usd.id,
+                "company_id": company_two.id,
+                "date_order": "2026-08-15",
+            }
+        )
+        line_two = self.env["purchase.order.line"].create(
+            {
+                "order_id": po_two.id,
+                "product_id": product_two.id,
+                "name": product_two.display_name,
+                "product_qty": 1.0,
+                "product_uom": product_two.uom_id.id,
+                "price_unit": 1.0,
+                "date_planned": "2026-08-15",
+            }
+        )
+        self._create_approved_foreign_landed_source(self.product, usd, line_one)
+        purchase_cost = 4000.0
+        landed_cost = 1000.0
+        sale_price = 6000.0
+        self.env["sale.price.update"].create(
+            {
+                "company_id": company_two.id,
+                "currency_id": self.currency.id,
+                "purchase_order_id": po_two.id,
+                "purchase_order_line_id": line_two.id,
+                "product_id": product_two.id,
+                "purchase_quantity": 1.0,
+                "purchase_uom_id": product_two.uom_id.id,
+                "purchase_price": 1.0,
+                "source_currency_id": usd.id,
+                "foreign_purchase_unit_price": 1.0,
+                "original_conversion_date": "2026-08-15",
+                "original_currency_value": 4000.0,
+                "original_purchase_cost_company": purchase_cost,
+                "landed_cost_unit_amount": landed_cost,
+                "original_total_cost": purchase_cost + landed_cost,
+                "last_revaluation_date": "2026-08-15",
+                "last_revaluation_rate": 4000.0,
+                "last_revalued_cost": purchase_cost + landed_cost,
+                "last_sale_price": sale_price,
+                "previous_exchange_rate_value": 4000.0,
+                "current_exchange_rate_value": 4000.0,
+                "previous_converted_purchase_cost": purchase_cost,
+                "current_converted_purchase_cost": purchase_cost,
+                "landed_unit_cost": purchase_cost + landed_cost,
+                "converted_purchase_price": purchase_cost + landed_cost,
+                "old_sale_price": 0.0,
+                "markup_type": "percentage",
+                "markup_value": 20.0,
+                "calculated_sale_price": sale_price,
+                "approved_sale_price": sale_price,
+                "rule_line_id": rule_two.line_ids.id,
+                "effective_date": "2026-08-15",
+                "conversion_date": "2026-08-15",
+                "approved_by": self.env.user.id,
+                "approved_date": fields.Datetime.now(),
+                "state": "approved",
+                "cost_source": "landed_cost",
+            }
+        )
+
+        self._create_company_rate(usd, "2026-08-16", 5000.0)
+
+        company_two_revaluation = self.env["sale.price.update"].search(
+            [
+                ("company_id", "=", company_two.id),
+                ("product_id", "=", product_two.id),
+                ("cost_source", "=", "currency_revaluation"),
+            ]
+        )
+        self.assertFalse(company_two_revaluation)
+        self.assertAlmostEqual(product_two.product_tmpl_id.list_price, 6000.0)
+
+        self.env["res.currency.rate"].create(
+            {
+                "name": "2026-08-16",
+                "currency_id": usd.id,
+                "company_id": company_two.id,
+                "rate": 1.0 / 5000.0,
+            }
+        )
+
+        company_two_revaluation = self.env["sale.price.update"].search(
+            [
+                ("company_id", "=", company_two.id),
+                ("product_id", "=", product_two.id),
+                ("cost_source", "=", "currency_revaluation"),
+            ]
+        )
+        self.assertEqual(len(company_two_revaluation), 1)
+        self.assertAlmostEqual(product_two.product_tmpl_id.list_price, 7200.0)
+
