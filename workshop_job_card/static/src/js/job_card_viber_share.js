@@ -9,6 +9,10 @@ function openUrl(url) {
     window.open(url, "_blank", "noopener");
 }
 
+function openAppUrl(url) {
+    window.location.href = url;
+}
+
 async function copyLink(url) {
     if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);
@@ -20,7 +24,12 @@ async function copyLink(url) {
 class ViberShareFallbackDialog extends Component {
     static template = "workshop_job_card.ViberShareFallbackDialog";
     static components = { Dialog };
-    static props = ["close", "title", "message", "url", "downloadUrl"];
+    static props = ["close", "title", "message", "url", "downloadUrl", "viberUrl"];
+
+    openViber() {
+        openUrl(this.props.viberUrl);
+        this.props.close();
+    }
 
     openPdf() {
         openUrl(this.props.url);
@@ -51,6 +60,7 @@ function showFallback(env, params) {
         message: params.message || "",
         url: params.url,
         downloadUrl: params.download_url,
+        viberUrl: params.viber_url,
     });
 }
 
@@ -58,44 +68,13 @@ registry.category("actions").add("workshop_job_card.share_to_viber", (env, actio
     const params = action.params || {};
     const notification = env.services.notification;
 
-    if (navigator.share) {
-        try {
-            navigator
-                .share({
-                    title: params.title,
-                    text: params.message,
-                    url: params.url,
-                })
-                .catch((error) => {
-                    if (error && error.name === "AbortError") {
-                        return;
-                    }
-                    notification.add(
-                        error && error.message
-                            ? error.message
-                            : _t("The browser could not open the native share sheet."),
-                        {
-                            title: _t("Share to Viber"),
-                            type: "warning",
-                        }
-                    );
-                    showFallback(env, params);
-                });
-            return;
-        } catch (error) {
-            if (error && error.name === "AbortError") {
-                return;
-            }
-            notification.add(
-                error && error.message
-                    ? error.message
-                    : _t("The browser could not open the native share sheet."),
-                {
-                    title: _t("Share to Viber"),
-                    type: "warning",
-                }
-            );
-        }
+    if (params.viber_url) {
+        openAppUrl(params.viber_url);
+        notification.add(_t("Viber is opening. If it does not open, use Copy Link or Open PDF."), {
+            title: _t("Share to Viber"),
+            type: "info",
+        });
+        return;
     }
 
     showFallback(env, params);

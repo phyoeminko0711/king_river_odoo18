@@ -48,8 +48,7 @@
                             invisible="state != 'approved' or repair_order_id"/>
                     <button name="action_share_to_viber" type="object"
                             string="Share to Viber" icon="fa-share-alt"
-                            invisible="1"/>
-<!--                            invisible="not can_share_to_viber"/>-->
+                            invisible="not can_share_to_viber"/>
 
                     <button name="action_cancel" type="object" string="Cancel"
                             invisible="state not in ['draft', 'sent', 'approved']"/>

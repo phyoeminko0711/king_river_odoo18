@@ -2,7 +2,7 @@ import base64
 import re
 import secrets
 from datetime import timedelta
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
@@ -517,6 +517,7 @@ class WorkshopJobCard(models.Model):
                 "message": message,
                 "url": share_url,
                 "download_url": "%s?download=1" % share_url,
+                "viber_url": "viber://forward?text=%s" % quote(message, safe=""),
                 "filename": attachment.name,
             },
         }
