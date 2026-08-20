@@ -24,6 +24,9 @@
                 <field name="lh_rh"/>
                 <field name="model_engine"/>
             </xpath>
+            <xpath expr="//group[@name='group_standard_price']/field[@name='default_code']" position="attributes">
+                <attribute name="string">Parts Number</attribute>
+            </xpath>
         </field>
     </record>
 

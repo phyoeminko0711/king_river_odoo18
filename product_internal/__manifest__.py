@@ -1,6 +1,6 @@
 {
     "name": "Product Internal",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "summary": "Additional internal product naming fields",
     "category": "Inventory/Product",
     "author": "dev_pmk",
