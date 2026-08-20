@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="purchase_order_form_line_product_internal_view" model="ir.ui.view">
+        <field name="name">purchase.order.form.line.product.internal</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="after">
+                <field name="car_name" readonly="1" optional="show"/>
+                <field name="lh_rh" readonly="1" optional="show"/>
+                <field name="model_engine" readonly="1" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_id']" position="after">
+                <field name="car_name" readonly="1"/>
+                <field name="lh_rh" readonly="1"/>
+                <field name="model_engine" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+<!--    <record id="purchase_order_form_product_internal_view" model="ir.ui.view">-->
+<!--        <field name="name">purchase.order.line.list.product.internal</field>-->
+<!--        <field name="model">purchase.order.line</field>-->
+<!--        <field name="inherit_id" ref="purchase.purchase_order_form"/>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <xpath expr="//notebook/page[@name='products']/field[@name='partner_id']" position="after">-->
+<!--                <field name="product_id" optional="show"/>-->
+<!--                <field name="car_name" readonly="1" optional="show"/>-->
+<!--                <field name="lh_rh" readonly="1" optional="show"/>-->
+<!--                <field name="model_engine" readonly="1" optional="show"/>-->
+<!--            </xpath>-->
+<!--        </field>-->
+<!--    </record>-->
+
+<!--    <record id="purchase_order_line_search_product_internal_view" model="ir.ui.view">-->
+<!--        <field name="name">purchase.order.line.search.product.internal</field>-->
+<!--        <field name="model">purchase.order.line</field>-->
+<!--        <field name="inherit_id" ref="purchase.purchase_order_line_search"/>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <xpath expr="//field[@name='product_id']" position="after">-->
+<!--                <field name="car_name"/>-->
+<!--                <field name="lh_rh"/>-->
+<!--                <field name="model_engine"/>-->
+<!--            </xpath>-->
+<!--        </field>-->
+<!--    </record>-->
+
+<!--    <record id="purchase_history_tree_product_internal_view" model="ir.ui.view">-->
+<!--        <field name="name">purchase.history.list.product.internal</field>-->
+<!--        <field name="model">purchase.order.line</field>-->
+<!--        <field name="inherit_id" ref="purchase.purchase_history_tree"/>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <xpath expr="//list/field[@name='product_id']" position="after">-->
+<!--                <field name="car_name" readonly="1" optional="show"/>-->
+<!--                <field name="lh_rh" readonly="1" optional="show"/>-->
+<!--                <field name="model_engine" readonly="1" optional="show"/>-->
+<!--            </xpath>-->
+<!--        </field>-->
+<!--    </record>-->
+</odoo>
