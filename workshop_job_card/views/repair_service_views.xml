@@ -32,6 +32,7 @@
                     <group string="Product Options">
                         <field name="product_ids"
                                widget="many2many_tags"
+                               context="{'workshop_product_display': True}"
                                options="{'no_create': True}"/>
                     </group>
                     <group>

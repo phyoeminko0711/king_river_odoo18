@@ -1,5 +1,6 @@
 from . import job_card
 from . import product_template
+from . import product_product
 from . import inspection_result
 from . import inspection_template
 from . import job_card_inspection
