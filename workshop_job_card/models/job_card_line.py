@@ -39,6 +39,10 @@ class WorkshopJobCardLine(models.Model):
         ondelete="restrict",
         domain=[("type", "in", ("consu", "service"))],
     )
+    lh_rh = fields.Selection(
+        [("lh", "LH"), ("rh", "RH")],
+        string="LH/RH",
+    )
     brand_id = fields.Many2one(
         related="product_id.brand_id",
         string="Brand",
@@ -135,6 +139,7 @@ class WorkshopJobCardLine(models.Model):
             "sequence",
             "job_card_service_id",
             "product_id",
+            "lh_rh",
             "warranty",
             "quantity",
             "product_uom_id",
