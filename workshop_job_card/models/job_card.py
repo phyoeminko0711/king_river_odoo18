@@ -348,11 +348,13 @@ class WorkshopJobCard(models.Model):
         for card in self:
             card.selected_line_count = len(card.line_ids.filtered("selected"))
 
-    @api.depends("line_ids.amount", "labour_cost", "service_cost")
+    @api.depends("line_ids.selected", "line_ids.amount", "labour_cost", "service_cost")
     def _compute_total_amount(self):
         for card in self:
+            selected_lines = card.line_ids.filtered("selected")
+            standalone_lines = card.line_ids.filtered(lambda line: not line.job_card_service_id)
             card.total_amount = (
-                sum(card.line_ids.mapped("amount"))
+                sum((selected_lines | standalone_lines).mapped("amount"))
                 + card.labour_cost
                 + card.service_cost
             )
@@ -744,6 +746,7 @@ class WorkshopJobCard(models.Model):
         self._ensure_state("sent")
         if not self.line_ids:
             raise ValidationError(_("Add at least one product line before approval."))
+        self._raise_for_incomplete_service_selections()
         self._workflow_write(
             {
                 "state": "approved",
@@ -779,7 +782,10 @@ class WorkshopJobCard(models.Model):
             raise UserError(_("A Repair Order already exists for this Job Card."))
         self._ensure_state("approved")
 
-        product_lines = self.line_ids.filtered("product_id")
+        self._raise_for_incomplete_service_selections()
+        product_lines = self.line_ids.filtered(
+            lambda line: line.product_id and (not line.job_card_service_id or line.selected)
+        )
         if not product_lines:
             raise ValidationError(_("Add at least one product line before creating a Repair Order."))
 

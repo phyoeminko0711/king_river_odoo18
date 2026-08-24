@@ -1,5 +1,5 @@
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class WorkshopJobCardService(models.Model):
@@ -22,6 +22,14 @@ class WorkshopJobCardService(models.Model):
         ondelete="restrict",
         index=True,
     )
+    part_number = fields.Char(
+        string="Part Number",
+        help="Enter a product default code to compare same-part options by brand.",
+    )
+    lh_rh = fields.Selection(
+        [("lh", "LH"), ("rh", "RH")],
+        string="LH/RH",
+    )
     option_line_ids = fields.One2many(
         "workshop.job.card.line",
         "job_card_service_id",
@@ -38,6 +46,11 @@ class WorkshopJobCardService(models.Model):
     )
     currency_id = fields.Many2one(
         related="job_card_id.currency_id",
+        store=True,
+        readonly=True,
+    )
+    job_card_state = fields.Selection(
+        related="job_card_id.state",
         store=True,
         readonly=True,
     )
@@ -84,12 +97,13 @@ class WorkshopJobCardService(models.Model):
 
     def write(self, vals):
         changing_service = "repair_service_id" in vals
+        changing_option_basis = bool({"repair_service_id", "part_number", "lh_rh"}.intersection(vals))
         if changing_service and any(line.job_card_id.state != "draft" for line in self):
             raise UserError(
                 _("The Repair Service can only be changed on a Draft Job Card.")
             )
         result = super().write(vals)
-        if changing_service and not self.env.context.get("skip_option_generation"):
+        if changing_option_basis and not self.env.context.get("skip_option_generation"):
             self._generate_option_lines()
         return result
 
@@ -103,18 +117,58 @@ class WorkshopJobCardService(models.Model):
             )
         return super().unlink()
 
-    @api.onchange("repair_service_id")
-    def _onchange_repair_service_id(self):
+    @api.onchange("repair_service_id", "part_number", "lh_rh")
+    def _onchange_repair_option_basis(self):
         self._generate_option_lines(onchange=True)
 
+    def _get_comparison_products(self):
+        self.ensure_one()
+        Product = self.env["product.product"]
+        part_number = (self.part_number or "").strip()
+        if part_number:
+            return Product.search(
+                [
+                    ("active", "=", True),
+                    ("product_tmpl_id.active", "=", True),
+                    ("type", "in", ("consu", "service")),
+                    ("default_code", "=", part_number),
+                ],
+                order="brand_id, name, id",
+            )
+        return self.repair_service_id.product_ids.filtered(
+            lambda product: product.active and product.product_tmpl_id.active
+        )
+
+    @api.constrains("part_number")
+    def _check_part_number_has_products(self):
+        for service_line in self.filtered("part_number"):
+            if not service_line._get_comparison_products():
+                raise ValidationError(
+                    _("No active Product Options found for Part Number %s.")
+                    % service_line.part_number
+                )
+
+    def _prepare_option_line_values(self, product):
+        self.ensure_one()
+        return {
+            "job_card_service_id": self.id,
+            "product_id": product.id,
+            "lh_rh": self.lh_rh,
+            "quantity": 1.0,
+            "product_uom_id": product.uom_id.id,
+            "unit_price": product.lst_price,
+            "selected": False,
+            "generated_by_service": True,
+        }
+
     def _generate_option_lines(self, onchange=False):
-        """Synchronize direct product options without overwriting user prices."""
+        """Synchronize product options from part number without overwriting user prices."""
         if self.env.context.get("skip_option_generation"):
             return
 
         OptionLine = self.env["workshop.job.card.line"]
         for service_line in self:
-            products = service_line.repair_service_id.product_ids
+            products = service_line._get_comparison_products()
             obsolete = service_line.option_line_ids.filtered(
                 lambda option: option.generated_by_service
                 and not option.selected
@@ -126,19 +180,11 @@ class WorkshopJobCardService(models.Model):
                 existing_products = kept_lines.mapped("product_id")
                 new_lines = OptionLine
                 for product in products - existing_products:
-                    option = OptionLine.new(
-                        {
-                            "job_card_service_id": service_line.id,
-                            "product_id": product.id,
-                            "quantity": 1.0,
-                            "product_uom_id": product.uom_id.id,
-                            "unit_price": product.lst_price,
-                            "selected": False,
-                            "generated_by_service": True,
-                        }
-                    )
+                    option = OptionLine.new(service_line._prepare_option_line_values(product))
                     option.job_card_service_id = service_line
                     new_lines |= option
+                for option in kept_lines.filtered("generated_by_service"):
+                    option.lh_rh = service_line.lh_rh
                 service_line.option_line_ids = kept_lines | new_lines
                 continue
 
@@ -148,15 +194,7 @@ class WorkshopJobCardService(models.Model):
                 obsolete.with_context(skip_option_generation=True).unlink()
             existing_products = service_line.option_line_ids.mapped("product_id")
             values = [
-                {
-                    "job_card_service_id": service_line.id,
-                    "product_id": product.id,
-                    "quantity": 1.0,
-                    "product_uom_id": product.uom_id.id,
-                    "unit_price": product.lst_price,
-                    "selected": False,
-                    "generated_by_service": True,
-                }
+                service_line._prepare_option_line_values(product)
                 for product in products - existing_products
             ]
             if values:
@@ -164,3 +202,9 @@ class WorkshopJobCardService(models.Model):
                     skip_option_generation=True,
                     skip_job_card_state_check=True,
                 ).create(values)
+            generated_options = service_line.option_line_ids.filtered("generated_by_service")
+            if generated_options:
+                generated_options.with_context(
+                    skip_job_card_state_check=True,
+                    skip_selection_sync=True,
+                ).write({"lh_rh": service_line.lh_rh})

@@ -240,7 +240,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr t-foreach="doc.line_ids" t-as="line">
+                            <t t-set="quote_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id or line.selected)"/>
+                            <tr t-foreach="quote_lines" t-as="line">
                                 <td class="kr-center-cell"><span t-esc="line_index + 1"/></td>
                                 <td>
                                     <t t-set="tmpl" t-value="line.product_id.product_tmpl_id"/>
@@ -269,13 +270,13 @@
                                     <span t-field="line.amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                                 </td>
                             </tr>
-                            <tr t-if="not doc.line_ids">
+                            <tr t-if="not quote_lines">
                                 <td colspan="8" class="kr-center-cell">No product lines.</td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <t t-set="parts_total" t-value="sum(doc.line_ids.mapped('amount'))"/>
+                    <t t-set="parts_total" t-value="sum(quote_lines.mapped('amount'))"/>
                     <table class="kr-total-table">
                         <tr>
                             <td class="kr-total-label">Parts Total</td>

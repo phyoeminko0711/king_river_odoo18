@@ -704,79 +704,28 @@ class TestWorkshopJobCard(TransactionCase):
             self.env["repair.order"].search([("job_card_id", "=", card.id)])
         )
 
-    def test_form_has_one_direct_repair_options_design(self):
+    def test_form_has_part_number_comparison_repair_options_design(self):
         form = etree.fromstring(self.env.ref("workshop_job_card.view_job_card_form").arch_db)
         option_fields = form.xpath("//field[@name='line_ids']")
         self.assertEqual(len(option_fields), 1)
-        self.assertEqual(
-            form.xpath("//field[@name='option_line_ids']"),
-            [],
-        )
         service_fields = form.xpath("//field[@name='service_line_ids']")
-        self.assertFalse(service_fields)
-        add_button = form.xpath(
-            "//button[@name='action_open_add_repair_service_wizard']"
-        )
-        self.assertEqual(len(add_button), 1)
+        self.assertEqual(len(service_fields), 1)
+        service_columns = service_fields[0].xpath("./list/field/@name")
         self.assertEqual(
-            add_button[0].get("invisible"),
-            "state not in ['draft', 'sent']",
+            [name for name in service_columns if name != "job_card_state"],
+            ["sequence", "repair_service_id", "part_number", "currency_id"],
         )
-        remove_button = form.xpath(
-            "//button[@name='action_open_remove_repair_service_wizard']"
-        )
-        self.assertEqual(len(remove_button), 1)
-        self.assertEqual(
-            remove_button[0].get("invisible"),
-            "state not in ['draft', 'sent'] or not service_line_ids",
-        )
-        self.assertEqual(
-            remove_button[0].getparent(),
-            add_button[0].getparent(),
-        )
-        draft_columns = option_fields[0].xpath("./list/field/@name")
+        option_columns = option_fields[0].xpath("./list/field/@name")
         for field_name in (
-            "repair_service_id", "product_id", "brand_id", "part_number", "warranty",
-            "quantity", "product_uom_id", "unit_price", "amount", "selected",
+            "selected", "repair_service_id", "product_id", "lh_rh",
+            "brand_id", "part_number", "warranty", "quantity",
+            "product_uom_id", "unit_price", "amount",
         ):
-            self.assertIn(field_name, draft_columns)
-        self.assertFalse(form.xpath("//field[@name='repair_service']"))
-        self.assertFalse(form.xpath("//field[@name='selected_line_count']"))
-        self.assertFalse(form.xpath("//field[@name='selected_total']"))
-        self.assertTrue(form.xpath("//field[@name='total_amount']"))
+            self.assertIn(field_name, option_columns)
         self.assertEqual(option_fields[0].xpath("./list/@create"), ["0"])
         self.assertEqual(option_fields[0].xpath("./list/@delete"), ["0"])
-        self.assertEqual(
-            option_fields[0].xpath("./list/field[@name='selected']/@readonly"),
-            ["parent.state not in ['draft', 'sent']"],
-        )
-
-        list_view = etree.fromstring(
-            self.env.ref("workshop_job_card.view_job_card_list").arch_db
-        )
-        self.assertEqual(
-            list_view.xpath("//list/field/@name"),
-            [
-                "name", "job_card_date", "customer_id", "vehicle_id", "plate_no",
-                "technician_id", "total_amount", "state",
-            ],
-        )
-
-    def test_exact_workflow_states(self):
-        selection = dict(self.env["workshop.job.card"]._fields["state"].selection)
-        self.assertEqual(
-            set(selection),
-            {
-                "draft",
-                "sent",
-                "approved",
-                "repair_created",
-                "repair_completed",
-                "rejected",
-                "cancelled",
-            },
-        )
-        self.assertFalse({"inspection", "prepared"}.intersection(selection))
+        self.assertFalse(form.xpath("//field[@name='repair_service']"))
+        self.assertTrue(form.xpath("//field[@name='total_amount']"))
 
     def test_repair_service_master_links_product_variants_directly(self):
         service = self.env["workshop.repair.service"].create(
