@@ -38,6 +38,7 @@ class WorkshopJobCardLine(models.Model):
         required=True,
         ondelete="restrict",
         domain=[("type", "in", ("consu", "service"))],
+        context={"workshop_product_display": True},
     )
     lh_rh = fields.Selection(
         [("lh", "LH"), ("rh", "RH")],
@@ -73,6 +74,11 @@ class WorkshopJobCardLine(models.Model):
     )
     currency_id = fields.Many2one(
         related="job_card_id.currency_id", store=True, readonly=True
+    )
+    job_card_state = fields.Selection(
+        related="job_card_id.state",
+        store=True,
+        readonly=True,
     )
 
     _sql_constraints = [
@@ -147,8 +153,10 @@ class WorkshopJobCardLine(models.Model):
             "selected",
         }.intersection(vals)
         for line in self:
-            if line.job_card_id.state == "sent" and business_fields:
-                raise UserError(_("Job Card product lines cannot be changed after sending."))
+            if self.env.context.get("skip_job_card_state_check"):
+                continue
+            if line.job_card_id.state == "sent" and business_fields - {"selected"}:
+                raise UserError(_("Only option selection can be changed after sending."))
             if line.job_card_id.state not in {"draft", "sent"} and business_fields:
                 raise UserError(_("Approved or closed Job Card product lines cannot be modified."))
         result = super().write(vals)

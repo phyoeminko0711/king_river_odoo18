@@ -15,6 +15,20 @@ class ProductProduct(models.Model):
             parts.append("[%s]" % self.brand_id.display_name)
         return " ".join(part for part in parts if part).strip()
 
+    @api.depends("default_code", "name", "product_tmpl_id.name", "brand_id.name")
+    @api.depends_context("workshop_product_display")
+    def _compute_display_name(self):
+        super()._compute_display_name()
+        if self.env.context.get("workshop_product_display"):
+            for product in self:
+                product.display_name = product._get_workshop_product_display_name()
+        else:
+            for product in self.filtered("brand_id"):
+                product.display_name = "%s [%s]" % (
+                    product.display_name,
+                    product.brand_id.display_name,
+                )
+
     @api.model
     def name_search(self, name="", args=None, operator="ilike", limit=100):
         if not self.env.context.get("workshop_product_display"):

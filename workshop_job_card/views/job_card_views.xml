@@ -141,18 +141,32 @@
                             </group>
                         </page>
                         <page string="Repair Options" name="repair_options">
-                            <separator string="Product Lines"/>
-                            <field name="line_ids" id="repair_options" nolabel="1"
-                                   readonly="state != 'draft'">
+                            <separator string="Repair Services"/>
+                            <field name="service_line_ids" nolabel="1"
+                                   readonly="state not in ['draft', 'sent']">
                                 <list editable="bottom">
-                                    <field name="product_id" context="{'workshop_product_display': True}"/>
-                                    <field name="lh_rh"/>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="job_card_state" column_invisible="True"/>
+                                    <field name="repair_service_id" readonly="job_card_state != 'draft'"/>
+                                    <field name="part_number" readonly="job_card_state != 'draft'"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <separator string="Brand Price Comparison"/>
+                            <field name="line_ids" id="repair_options" nolabel="1"
+                                   readonly="state not in ['draft', 'sent']">
+                                <list editable="bottom" create="0" delete="0">
+                                    <field name="job_card_state" column_invisible="True"/>
+                                    <field name="selected"/>
+                                    <field name="repair_service_id" readonly="1"/>
+                                    <field name="product_id" context="{'workshop_product_display': True}" readonly="job_card_state != 'draft'"/>
+                                    <field name="lh_rh" readonly="1"/>
                                     <field name="brand_id" readonly="1"/>
                                     <field name="part_number" readonly="1"/>
-                                    <field name="warranty"/>
-                                    <field name="quantity"/>
-                                    <field name="product_uom_id"/>
-                                    <field name="unit_price"/>
+                                    <field name="warranty" readonly="job_card_state != 'draft'"/>
+                                    <field name="quantity" readonly="job_card_state != 'draft'"/>
+                                    <field name="product_uom_id" readonly="job_card_state != 'draft'"/>
+                                    <field name="unit_price" readonly="job_card_state != 'draft'"/>
                                     <field name="amount" readonly="1"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
