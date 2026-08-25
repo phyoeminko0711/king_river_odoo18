@@ -115,6 +115,13 @@ class WorkshopJobCardService(models.Model):
                     "in Draft or Sent to Customer state."
                 )
             )
+        option_lines = self.mapped("option_line_ids")
+        if option_lines:
+            option_lines.with_context(
+                skip_job_card_state_check=True,
+                skip_option_generation=True,
+                skip_selection_sync=True,
+            ).unlink()
         return super().unlink()
 
     @api.onchange("repair_service_id", "part_number", "lh_rh")
