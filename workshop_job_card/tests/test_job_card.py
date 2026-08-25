@@ -713,13 +713,16 @@ class TestWorkshopJobCard(TransactionCase):
         service_columns = service_fields[0].xpath("./list/field/@name")
         self.assertEqual(
             [name for name in service_columns if name != "job_card_state"],
-            ["sequence", "repair_service_id", "part_number", "currency_id"],
+            [
+                "sequence", "repair_service_id", "part_product_id", "part_number",
+                "labour_cost", "service_cost", "currency_id",
+            ],
         )
         option_columns = option_fields[0].xpath("./list/field/@name")
         for field_name in (
             "selected", "repair_service_id", "product_id", "lh_rh",
             "brand_id", "part_number", "warranty", "quantity",
-            "product_uom_id", "unit_price", "amount",
+            "product_uom_id", "unit_price", "amount", "total_amount",
         ):
             self.assertIn(field_name, option_columns)
         self.assertEqual(option_fields[0].xpath("./list/@create"), ["0"])

@@ -230,19 +230,23 @@
                         <thead>
                             <tr>
                                 <th style="width: 5%;">No.</th>
-                                <th style="width: 34%;">Part / Description</th>
-                                <th style="width: 8%;">Qty</th>
-                                <th style="width: 8%;">UoM</th>
-                                <th style="width: 12%;">Brand</th>
-                                <th style="width: 12%;">Part No.</th>
-                                <th style="width: 10%;">Unit Price</th>
-                                <th style="width: 11%;">Amount</th>
+                                <th style="width: 7%;">Selected</th>
+                                <th style="width: 18%;">Repair Service</th>
+                                <th style="width: 25%;">Part / Description</th>
+                                <th style="width: 7%;">Qty</th>
+                                <th style="width: 9%;">Brand</th>
+                                <th style="width: 10%;">Part No.</th>
+                                <th style="width: 9%;">Unit Price</th>
+                                <th style="width: 10%;">Amount</th>
+                                <th style="width: 10%;">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-set="quote_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id or line.selected)"/>
+                            <t t-set="quote_lines" t-value="doc.line_ids"/>
                             <tr t-foreach="quote_lines" t-as="line">
                                 <td class="kr-center-cell"><span t-esc="line_index + 1"/></td>
+                                <td class="kr-center-cell"><span t-if="line.selected">Yes</span></td>
+                                <td><span t-field="line.repair_service_id"/></td>
                                 <td>
                                     <t t-set="tmpl" t-value="line.product_id.product_tmpl_id"/>
                                     <t t-set="english_name" t-value="tmpl.english_name if 'english_name' in tmpl._fields else False"/>
@@ -260,7 +264,6 @@
                                 <td class="kr-center-cell">
                                     <span t-field="line.quantity"/>
                                 </td>
-                                <td class="kr-center-cell"><span t-field="line.product_uom_id"/></td>
                                 <td><span t-field="line.brand_id"/></td>
                                 <td><span t-field="line.part_number"/></td>
                                 <td class="kr-right kr-nowrap">
@@ -269,31 +272,39 @@
                                 <td class="kr-right kr-nowrap">
                                     <span t-field="line.amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                                 </td>
+                                <td class="kr-right kr-nowrap">
+                                    <span t-field="line.total_amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                </td>
                             </tr>
                             <tr t-if="not quote_lines">
-                                <td colspan="8" class="kr-center-cell">No product lines.</td>
+                                <td colspan="10" class="kr-center-cell">No product lines.</td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <t t-set="parts_total" t-value="sum(quote_lines.mapped('amount'))"/>
+                    <t t-set="selected_lines" t-value="doc.line_ids.filtered('selected')"/>
+                    <t t-set="standalone_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id)"/>
+                    <t t-set="selected_services" t-value="selected_lines.mapped('job_card_service_id')"/>
+                    <t t-set="parts_total" t-value="sum(selected_lines.mapped('amount')) + sum(standalone_lines.mapped('amount'))"/>
+                    <t t-set="labour_total" t-value="doc.labour_cost + sum(selected_services.mapped('labour_cost'))"/>
+                    <t t-set="service_total" t-value="doc.service_cost + sum(selected_services.mapped('service_cost'))"/>
                     <table class="kr-total-table">
                         <tr>
-                            <td class="kr-total-label">Parts Total</td>
+                            <td class="kr-total-label">Selected Parts Total</td>
                             <td class="kr-right">
                                 <span t-esc="parts_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                             </td>
                         </tr>
                         <tr>
-                            <td class="kr-total-label">Labour Cost</td>
+                            <td class="kr-total-label">Selected Labour Cost</td>
                             <td class="kr-right">
-                                <span t-field="doc.labour_cost" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                <span t-esc="labour_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                             </td>
                         </tr>
                         <tr>
-                            <td class="kr-total-label">Service Cost</td>
+                            <td class="kr-total-label">Selected Service Cost</td>
                             <td class="kr-right">
-                                <span t-field="doc.service_cost" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                <span t-esc="service_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                             </td>
                         </tr>
                         <tr class="kr-grand-total">

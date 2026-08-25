@@ -348,13 +348,20 @@ class WorkshopJobCard(models.Model):
         for card in self:
             card.selected_line_count = len(card.line_ids.filtered("selected"))
 
-    @api.depends("line_ids.selected", "line_ids.amount", "labour_cost", "service_cost")
+    @api.depends(
+        "line_ids.selected",
+        "line_ids.amount",
+        "line_ids.total_amount",
+        "labour_cost",
+        "service_cost",
+    )
     def _compute_total_amount(self):
         for card in self:
             selected_lines = card.line_ids.filtered("selected")
             standalone_lines = card.line_ids.filtered(lambda line: not line.job_card_service_id)
             card.total_amount = (
-                sum((selected_lines | standalone_lines).mapped("amount"))
+                sum(selected_lines.mapped("total_amount"))
+                + sum(standalone_lines.mapped("amount"))
                 + card.labour_cost
                 + card.service_cost
             )
@@ -724,6 +731,23 @@ class WorkshopJobCard(models.Model):
                     repair, service_product, self.service_cost, "service", 20
                 )
             )
+        selected_services = self.service_line_ids.filtered("selected_option_id")
+        if any(service.labour_cost > 0 for service in selected_services):
+            labour_product = self._get_single_repair_charge_product("is_labour_cost")
+            for index, service in enumerate(selected_services.filtered(lambda item: item.labour_cost > 0), start=1):
+                charge_vals.append(
+                    self._prepare_repair_charge_line_vals(
+                        repair, labour_product, service.labour_cost, "labour", 30 + index
+                    )
+                )
+        if any(service.service_cost > 0 for service in selected_services):
+            service_product = self._get_single_repair_charge_product("is_workshop_service")
+            for index, service in enumerate(selected_services.filtered(lambda item: item.service_cost > 0), start=1):
+                charge_vals.append(
+                    self._prepare_repair_charge_line_vals(
+                        repair, service_product, service.service_cost, "service", 60 + index
+                    )
+                )
         return charge_vals
 
     def action_send_to_customer(self):
