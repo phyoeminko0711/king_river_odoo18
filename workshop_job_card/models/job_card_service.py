@@ -22,9 +22,26 @@ class WorkshopJobCardService(models.Model):
         ondelete="restrict",
         index=True,
     )
-    part_number = fields.Char(
+    part_product_id = fields.Many2one(
+        "product.product",
         string="Part Number",
-        help="Enter a product default code to compare same-part options by brand.",
+        domain=[("type", "in", ("consu", "service"))],
+        context={"workshop_product_display": True},
+        help="Choose one product; all active products with the same default code are compared by brand.",
+    )
+    part_number = fields.Char(
+        string="Part Number Code",
+        help="Default code used to compare same-part options by brand.",
+    )
+    labour_cost = fields.Monetary(
+        string="Labour Cost",
+        default=0.0,
+        currency_field="currency_id",
+    )
+    service_cost = fields.Monetary(
+        string="Service Cost",
+        default=0.0,
+        currency_field="currency_id",
     )
     lh_rh = fields.Selection(
         [("lh", "LH"), ("rh", "RH")],
@@ -67,13 +84,13 @@ class WorkshopJobCardService(models.Model):
         ),
     ]
 
-    @api.depends("option_line_ids.selected", "option_line_ids.amount")
+    @api.depends("option_line_ids.selected", "option_line_ids.total_amount")
     def _compute_selected_option(self):
         for service_line in self:
             selected_option = service_line.option_line_ids.filtered("selected")[:1]
             service_line.selected_option_id = selected_option
             service_line.selected_amount = (
-                selected_option.amount if selected_option else 0.0
+                selected_option.total_amount if selected_option else 0.0
             )
 
     @api.model_create_multi
@@ -87,6 +104,10 @@ class WorkshopJobCardService(models.Model):
                         "Sent Job Card."
                     )
                 )
+            if vals.get("part_product_id") and not vals.get("part_number"):
+                vals["part_number"] = self.env["product.product"].browse(
+                    vals["part_product_id"]
+                ).default_code
             if vals.get("repair_service_id") and not vals.get("name"):
                 vals["name"] = self.env["workshop.repair.service"].browse(
                     vals["repair_service_id"]
@@ -96,8 +117,13 @@ class WorkshopJobCardService(models.Model):
         return service_lines
 
     def write(self, vals):
+        vals = dict(vals)
+        if vals.get("part_product_id"):
+            vals["part_number"] = self.env["product.product"].browse(
+                vals["part_product_id"]
+            ).default_code
         changing_service = "repair_service_id" in vals
-        changing_option_basis = bool({"repair_service_id", "part_number", "lh_rh"}.intersection(vals))
+        changing_option_basis = bool({"repair_service_id", "part_product_id", "part_number", "lh_rh"}.intersection(vals))
         if changing_service and any(line.job_card_id.state != "draft" for line in self):
             raise UserError(
                 _("The Repair Service can only be changed on a Draft Job Card.")
@@ -128,6 +154,12 @@ class WorkshopJobCardService(models.Model):
             ).unlink()
         return super().unlink()
 
+    @api.onchange("part_product_id")
+    def _onchange_part_product_id(self):
+        for service_line in self:
+            service_line.part_number = service_line.part_product_id.default_code
+        self._generate_option_lines(onchange=True)
+
     @api.onchange("repair_service_id", "part_number", "lh_rh")
     def _onchange_repair_option_basis(self):
         self._generate_option_lines(onchange=True)
@@ -135,7 +167,7 @@ class WorkshopJobCardService(models.Model):
     def _get_comparison_products(self):
         self.ensure_one()
         Product = self.env["product.product"]
-        part_number = (self.part_number or "").strip()
+        part_number = (self.part_number or self.part_product_id.default_code or "").strip()
         if part_number:
             return Product.search(
                 [
@@ -158,6 +190,14 @@ class WorkshopJobCardService(models.Model):
                     _("No active Product Options found for Part Number %s.")
                     % service_line.part_number
                 )
+
+    @api.constrains("labour_cost", "service_cost")
+    def _check_service_costs(self):
+        for service_line in self:
+            if service_line.labour_cost < 0:
+                raise ValidationError(_("Labour Cost must be greater than or equal to zero."))
+            if service_line.service_cost < 0:
+                raise ValidationError(_("Service Cost must be greater than or equal to zero."))
 
     def _prepare_option_line_values(self, product):
         self.ensure_one()

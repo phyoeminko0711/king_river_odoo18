@@ -148,7 +148,10 @@
                                     <field name="sequence" widget="handle"/>
                                     <field name="job_card_state" column_invisible="True"/>
                                     <field name="repair_service_id" readonly="job_card_state != 'draft'"/>
-                                    <field name="part_number" readonly="job_card_state != 'draft'"/>
+                                    <field name="part_product_id" string="Part Number" context="{'workshop_product_display': True}" readonly="job_card_state != 'draft'"/>
+                                    <field name="part_number" string="Code" readonly="1"/>
+                                    <field name="labour_cost" readonly="job_card_state != 'draft'"/>
+                                    <field name="service_cost" readonly="job_card_state != 'draft'"/>
                                     <button name="action_remove_service_line" type="object" icon="fa-trash" title="Remove" invisible="not id"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
@@ -169,14 +172,11 @@
                                     <field name="product_uom_id" readonly="job_card_state != 'draft'"/>
                                     <field name="unit_price" readonly="job_card_state != 'draft'"/>
                                     <field name="amount" readonly="1"/>
+                                    <field name="total_amount" readonly="1"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
-                                <field name="labour_cost" readonly="state not in ['draft', 'sent']"
-                                       options="{'currency_field': 'currency_id'}"/>
-                                <field name="service_cost" readonly="state not in ['draft', 'sent']"
-                                       options="{'currency_field': 'currency_id'}"/>
                                 <field name="total_amount" readonly="1"/>
                                 <field name="currency_id" invisible="1"/>
                             </group>
