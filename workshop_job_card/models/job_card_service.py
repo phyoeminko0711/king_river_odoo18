@@ -107,6 +107,10 @@ class WorkshopJobCardService(models.Model):
             self._generate_option_lines()
         return result
 
+    def action_remove_service_line(self):
+        self.unlink()
+        return {"type": "ir.actions.client", "tag": "reload"}
+
     def unlink(self):
         if any(line.job_card_id.state not in {"draft", "sent"} for line in self):
             raise UserError(
