@@ -108,7 +108,7 @@ class WorkshopJobCardService(models.Model):
         return result
 
     def action_remove_service_line(self):
-        self.unlink()
+        self.sudo().unlink()
         return {"type": "ir.actions.client", "tag": "reload"}
 
     def unlink(self):
