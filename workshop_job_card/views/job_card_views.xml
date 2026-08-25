@@ -144,11 +144,12 @@
                             <separator string="Repair Services"/>
                             <field name="service_line_ids" nolabel="1"
                                    readonly="state not in ['draft', 'sent']">
-                                <list editable="bottom">
+                                <list editable="bottom" delete="1">
                                     <field name="sequence" widget="handle"/>
                                     <field name="job_card_state" column_invisible="True"/>
                                     <field name="repair_service_id" readonly="job_card_state != 'draft'"/>
                                     <field name="part_number" readonly="job_card_state != 'draft'"/>
+                                    <button name="action_remove_service_line" type="object" icon="fa-trash" title="Remove"/>
                                     <field name="currency_id" column_invisible="True"/>
                                 </list>
                             </field>
