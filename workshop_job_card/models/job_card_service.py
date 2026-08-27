@@ -160,7 +160,11 @@ class WorkshopJobCardService(models.Model):
             service_line.part_number = service_line.part_product_id.default_code
         self._generate_option_lines(onchange=True)
 
-    @api.onchange("repair_service_id", "part_number", "lh_rh")
+    @api.onchange("repair_service_id")
+    def _onchange_repair_service_id(self):
+        self._generate_option_lines(onchange=True)
+
+    @api.onchange("part_number", "lh_rh")
     def _onchange_repair_option_basis(self):
         self._generate_option_lines(onchange=True)
 
@@ -178,9 +182,7 @@ class WorkshopJobCardService(models.Model):
                 ],
                 order="brand_id, name, id",
             )
-        return self.repair_service_id.product_ids.filtered(
-            lambda product: product.active and product.product_tmpl_id.active
-        )
+        return Product.browse()
 
     @api.constrains("part_number")
     def _check_part_number_has_products(self):
