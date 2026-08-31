@@ -89,12 +89,3 @@ class WorkshopInspectionTemplateLine(models.Model):
                 and line.default_result_option_id.result_type_id != line.result_type_id
             ):
                 raise ValidationError(_("Default Result must belong to the selected Result Type."))
-
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE workshop_inspection_template_line
-               SET allow_multiple_photos = TRUE
-             WHERE allow_multiple_photos IS NULL
-            """
-        )

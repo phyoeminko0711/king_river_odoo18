@@ -268,15 +268,6 @@ class WorkshopJobCard(models.Model):
         ),
     ]
 
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE workshop_job_card
-               SET state = 'draft'
-             WHERE state IN ('customer_check', 'technician_inspection')
-            """
-        )
-
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
