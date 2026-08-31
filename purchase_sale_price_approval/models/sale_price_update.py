@@ -222,34 +222,6 @@ class SalePriceUpdate(models.Model):
         ("name_company_unique", "unique(name, company_id)", "The reference must be unique per company."),
     ]
 
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE sale_price_update
-               SET cost_source = 'purchase'
-             WHERE landed_cost_id IS NULL
-               AND purchase_order_id IS NOT NULL
-               AND (cost_source IS NULL OR cost_source = 'landed_cost')
-            """
-        )
-        self.env.cr.execute(
-            """
-            UPDATE sale_price_update
-               SET previous_exchange_rate_value = COALESCE(previous_exchange_rate_value, original_currency_value),
-                   current_exchange_rate_value = COALESCE(current_exchange_rate_value, original_currency_value),
-                   previous_converted_purchase_cost = COALESCE(
-                       previous_converted_purchase_cost,
-                       previous_currency_value,
-                       original_purchase_cost_company
-                   ),
-                   current_converted_purchase_cost = COALESCE(
-                       current_converted_purchase_cost,
-                       current_currency_value,
-                       original_purchase_cost_company
-                   )
-             WHERE source_currency_id IS NOT NULL
-            """
-        )
 
     @api.model_create_multi
     def create(self, vals_list):

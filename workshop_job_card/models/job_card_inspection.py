@@ -274,23 +274,6 @@ class WorkshopJobCardInspectionLine(models.Model):
         readonly=True,
     )
 
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE workshop_job_card_inspection_line
-               SET result_name = COALESCE(result_name, result)
-             WHERE result_name IS NULL
-               AND result IS NOT NULL
-            """
-        )
-        self.env.cr.execute(
-            """
-            UPDATE workshop_job_card_inspection_line
-               SET allow_multiple_photos = TRUE
-             WHERE allow_multiple_photos IS NULL
-            """
-        )
-
     def write(self, vals):
         if self.env.context.get("skip_inspection_write_protection"):
             return super().write(vals)
