@@ -147,8 +147,8 @@
                                 <list editable="bottom" delete="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="job_card_state" column_invisible="True"/>
-                                    <field name="repair_service_id" readonly="job_card_state != 'draft'"/>
-                                    <field name="part_product_id" string="Part Number" context="{'workshop_product_display': True}" readonly="job_card_state != 'draft'"/>
+                                    <field name="repair_service_id" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}" readonly="job_card_state != 'draft'"/>
+                                    <field name="part_product_id" string="Part Number" context="{'workshop_product_display': True}" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}" readonly="job_card_state != 'draft'"/>
                                     <field name="part_number" string="Code" readonly="1"/>
                                     <button name="action_remove_service_line" type="object" icon="fa-trash" title="Remove" invisible="not id"/>
                                     <field name="currency_id" column_invisible="True"/>
@@ -161,7 +161,7 @@
                                     <field name="job_card_state" column_invisible="True"/>
                                     <field name="selected"/>
                                     <field name="repair_service_id" readonly="1"/>
-                                    <field name="product_id" context="{'workshop_product_display': True}" readonly="job_card_state != 'draft'"/>
+                                    <field name="product_id" context="{'workshop_product_display': True}" options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}" readonly="job_card_state != 'draft'"/>
                                     <field name="lh_rh" readonly="1"/>
                                     <field name="brand_id" readonly="1"/>
                                     <field name="part_number" readonly="1"/>
