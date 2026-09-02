@@ -11,6 +11,13 @@
                        context="{'kanban_view_ref': 'sales_team.crm_team_view_kanban'}"
                        options="{'no_create': True}"/>
             </field>
+
+            <xpath expr="//field[@name='order_line']//field[@name='product_id']" position="attributes">
+                <attribute name="options">{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']//field[@name='product_template_id']" position="attributes">
+                <attribute name="options">{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
