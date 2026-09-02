@@ -28,6 +28,13 @@
             <xpath expr="//sheet" position="inside">
                 <field name="invoice_count" invisible="1"/>
             </xpath>
+
+            <xpath expr="//sheet/group/group/field[@name='product_id']" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="attributes">
+                <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>

@@ -33,7 +33,7 @@
                         <field name="product_ids"
                                widget="many2many_tags"
                                context="{'workshop_product_display': True}"
-                               options="{'no_create': True}"/>
+                               options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
                     </group>
                     <group>
                         <field name="description" placeholder="Optional service description..."/>
