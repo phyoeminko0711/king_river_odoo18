@@ -1,9 +1,31 @@
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
+
+    analytic_account_id = fields.Many2one(
+        "account.analytic.account",
+        string="Analytic Account",
+        check_company=True,
+        tracking=True,
+    )
+
+    def _get_header_analytic_distribution(self):
+        self.ensure_one()
+        if not self.analytic_account_id:
+            return False
+        return {str(self.analytic_account_id.id): 100.0}
+
+    def _apply_header_analytic_distribution(self):
+        for order in self:
+            distribution = order._get_header_analytic_distribution()
+            order.order_line.filtered(lambda line: not line.display_type).analytic_distribution = distribution
+
+    @api.onchange("analytic_account_id")
+    def _onchange_analytic_account_id(self):
+        self._apply_header_analytic_distribution()
 
     def _get_sales_team_warehouse(self, team, company):
         """Return the team's warehouse after validating company consistency."""
@@ -50,6 +72,8 @@ class SaleOrder(models.Model):
         for order, vals in zip(orders, vals_list):
             if "warehouse_id" not in vals and order.team_id.warehouse_id:
                 order.with_context(skip_sale_team_warehouse=True)._apply_sales_team_warehouse()
+            if vals.get("analytic_account_id"):
+                order._apply_header_analytic_distribution()
         return orders
 
     def write(self, vals):
@@ -60,4 +84,27 @@ class SaleOrder(models.Model):
             and ("team_id" in vals or "user_id" in vals)
         ):
             self.with_context(skip_sale_team_warehouse=True)._apply_sales_team_warehouse()
+        if "analytic_account_id" in vals:
+            self._apply_header_analytic_distribution()
         return result
+
+
+
+class SaleOrderLine(models.Model):
+    _inherit = "sale.order.line"
+
+    @api.onchange("product_id", "product_template_id")
+    def _onchange_product_apply_order_analytic_account(self):
+        for line in self:
+            if line.order_id.analytic_account_id and not line.display_type:
+                line.analytic_distribution = line.order_id._get_header_analytic_distribution()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("analytic_distribution") or not vals.get("order_id"):
+                continue
+            order = self.env["sale.order"].browse(vals["order_id"])
+            if order.analytic_account_id:
+                vals["analytic_distribution"] = order._get_header_analytic_distribution()
+        return super().create(vals_list)
