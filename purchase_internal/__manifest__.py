@@ -5,7 +5,7 @@
     "category": "Purchases",
     "author": "dev_pmk",
     "license": "LGPL-3",
-    "depends": ["purchase", "product_internal"],
+    "depends": ["purchase", "product_internal", "analytic"],
     "data": [
         "views/purchase_order_line_views.xml",
     ],

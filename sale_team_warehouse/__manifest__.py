@@ -10,6 +10,7 @@
         "sale_stock",
         "crm",
         "stock",
+        "analytic",
     ],
     "data": [
         "views/crm_team_views.xml",
