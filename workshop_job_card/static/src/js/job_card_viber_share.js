@@ -39,9 +39,9 @@ class ViberShareFallbackDialog extends Component {
     async copyLink() {
         const copied = await copyLink(this.props.url).catch(() => false);
         if (!copied && this.props.url) {
-            window.prompt(_t("Copy Job Card PDF link"), this.props.url);
+            window.prompt(_t("Copy Job Card report link"), this.props.url);
         }
-        this.env.services.notification.add(_t("The PDF link was copied."), {
+        this.env.services.notification.add(_t("The report link was copied."), {
             title: _t("Share to Viber"),
             type: "success",
         });
@@ -70,7 +70,7 @@ registry.category("actions").add("workshop_job_card.share_to_viber", (env, actio
 
     if (params.viber_url) {
         openAppUrl(params.viber_url);
-        notification.add(_t("Viber is opening. If it does not open, use Copy Link or Open PDF."), {
+        notification.add(_t("Viber is opening. If it does not open, use Copy Link or Open Report."), {
             title: _t("Share to Viber"),
             type: "info",
         });
