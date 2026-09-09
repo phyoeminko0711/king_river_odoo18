@@ -13,13 +13,13 @@
                     Open Viber
                 </button>
                 <button type="button" class="btn btn-secondary" t-on-click="openPdf">
-                    Open PDF
+                    Open Report
                 </button>
                 <button type="button" class="btn btn-secondary" t-on-click="copyLink">
                     Copy Link
                 </button>
                 <button type="button" class="btn btn-secondary" t-on-click="downloadPdf">
-                    Download PDF
+                    Print / Save PDF
                 </button>
             </div>
             <t t-set-slot="footer">

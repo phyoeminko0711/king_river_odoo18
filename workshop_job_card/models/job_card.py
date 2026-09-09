@@ -495,7 +495,7 @@ class WorkshopJobCard(models.Model):
             [
                 _("Total: %s") % total.strip(),
                 "",
-                _("View PDF: %s") % share_url,
+                _("View Report: %s") % share_url,
             ]
         )
         return "\n".join(lines)
@@ -506,7 +506,6 @@ class WorkshopJobCard(models.Model):
             raise UserError(_("Save the Job Card before sharing it."))
         if not self.customer_id:
             raise UserError(_("Select a customer before sharing the Job Card."))
-        attachment = self._ensure_viber_share_attachment()
         token = self._ensure_viber_share_token()
         share_url = "%s/job_card/share/%s" % (self._get_viber_share_base_url(), token)
         message = self._get_viber_share_message(share_url)
@@ -517,9 +516,9 @@ class WorkshopJobCard(models.Model):
                 "title": _("Job Card %s") % self.name,
                 "message": message,
                 "url": share_url,
-                "download_url": "%s?download=1" % share_url,
+                "download_url": share_url,
                 "viber_url": "viber://forward?text=%s" % quote(message, safe=""),
-                "filename": attachment.name,
+                "filename": self._get_share_pdf_filename(),
             },
         }
 
