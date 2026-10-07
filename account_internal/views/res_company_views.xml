@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_invoice_header" model="ir.ui.view">
+        <field name="name">res.company.form.invoice.header</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='general_info']/group" position="after">
+                <group string="Sale Invoice Header">
+                    <group string="Shop 1">
+                        <field name="invoice_shop_1_address" placeholder="Shop 1 full address..."/>
+                        <field name="invoice_shop_1_spare_phone" placeholder="09-..., 09-..."/>
+                        <field name="invoice_shop_1_service_phone" placeholder="09-..., 09-..."/>
+                    </group>
+                    <group string="Shop 2">
+                        <field name="invoice_shop_2_address" placeholder="Shop 2 full address..."/>
+                        <field name="invoice_shop_2_phone" placeholder="09-..., 09-..."/>
+                        <field name="invoice_shop_2_spare_phone" placeholder="09-..., 09-..."/>
+                        <field name="invoice_shop_2_service_phone" placeholder="09-..., 09-..."/>
+                    </group>
+                    <field name="invoice_service_notes"
+                           placeholder="ဝယ်ယူပြီးပစ္စည်းများအတွက် သတ်မှတ်ချက်များ..."/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
