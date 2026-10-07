@@ -44,6 +44,7 @@ class DailyStockSummaryWizard(models.TransientModel):
             "url": "/download/excel?id=%s&model=%s&report_name=%s"
             % (self.id, self._name, report_name),
             "target": "new",
+            "close": True,
         }
 
     def get_xlsx(self, response):
