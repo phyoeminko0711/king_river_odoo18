@@ -10,6 +10,7 @@
     'sequence': 39,
 
     'summary': 'Custom report',
+    'author': 'dev_pmk',
 
     'description': "",
 
