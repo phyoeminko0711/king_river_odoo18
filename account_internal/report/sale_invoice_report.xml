@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_sale_invoice" model="report.paperformat">
+        <field name="name">King River Sale Invoice A4</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">5</field>
+        <field name="margin_bottom">5</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_sale_invoice_direct_print" model="ir.actions.report">
+        <field name="name">Sale Invoice Direct Print</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">account_internal.report_sale_invoice_document</field>
+        <field name="report_file">account_internal.report_sale_invoice_document</field>
+        <field name="print_report_name">'Sale_Invoice_%s' % (object.name or object.id)</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">form</field>
+        <field name="domain" eval="[('move_type', 'in', ('out_invoice', 'out_refund', 'out_receipt'))]"/>
+        <field name="groups_id" eval="[(4, ref('account.group_account_invoice')), (4, ref('account.group_account_readonly'))]"/>
+        <field name="paperformat_id" ref="account_internal.paperformat_sale_invoice"/>
+    </record>
+
+    <template id="report_sale_invoice_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="company" t-value="doc.company_id or res_company"/>
+                <t t-set="currency" t-value="doc.currency_id or company.currency_id"/>
+                <t t-set="lines" t-value="doc.invoice_line_ids.filtered(lambda line: line.display_type == 'product')"/>
+                <t t-set="gross_total" t-value="sum(lines.mapped(lambda line: line.quantity * line.price_unit))"/>
+                <t t-set="discount_total" t-value="gross_total - doc.amount_untaxed"/>
+                <t t-set="paid_total" t-value="doc.amount_total - doc.amount_residual"/>
+                <t t-set="customer_address" t-value="doc.partner_id._display_address(without_company=True).strip()"/>
+                <t t-set="shop_1_address" t-value="company.invoice_shop_1_address or 'အမှတ် (၆၁၉၊ ၆၃၁၊ ၆၃၂)၊ အမှတ် (၃) လမ်းမကြီး၊ ဖူးပွင့်စုံအနီး၊ စုပေါင်း (၃) ရပ်ကွက်၊ မင်္ဂလာဒုံမြို့နယ်၊ ရန်ကုန်မြို့။'"/>
+                <t t-set="shop_1_spare_phone" t-value="company.invoice_shop_1_spare_phone or '09-441931001, 09-441931002'"/>
+                <t t-set="shop_1_service_phone" t-value="company.invoice_shop_1_service_phone or '09-402882005, 09-402882008'"/>
+                <t t-set="shop_2_address" t-value="company.invoice_shop_2_address or 'အမှတ် (၁)၊ မဟာဗန္ဓုလလမ်း၊ အထကစက်ဆန်းအနီး၊ (၄၅) ရပ်ကွက်၊ မြောက်ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။'"/>
+                <t t-set="shop_2_phone" t-value="company.invoice_shop_2_phone or '09-732060555, 09-420600554'"/>
+                <t t-set="report_filename" t-value="('Sale_Invoice_%s' % (doc.name or doc.id)).replace('/', '_').replace(' ', '_')"/>
+                <div class="page kr-sale-invoice">
+                    <script type="text/javascript">document.title = "<t t-out="report_filename"/>";</script>
+                    <style>
+                        @page { size: A4; margin: 0; }
+                        @media print {
+                            html, body { margin: 0 !important; padding: 0 !important; }
+                            .kr-sale-invoice { padding: 5mm 6mm !important; box-sizing: border-box; }
+                        }
+                        .kr-sale-invoice, .kr-sale-invoice * {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .kr-sale-invoice { position: relative; min-height: 285mm; padding: 5mm 6mm; box-sizing: border-box; color: #111; font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', Arial, sans-serif; font-size: 11px; }
+                        .kr-content { position: relative; z-index: 2; min-height: 275mm; }
+                        .kr-watermark { position: absolute; z-index: 1; top: 43%; left: 50%; width: 52%; max-height: 90mm; object-fit: contain; transform: translate(-50%, -50%); opacity: 0.08; }
+                        .kr-header { display: table; width: 100%; table-layout: fixed; margin-bottom: 2px; }
+                        .kr-header-logo, .kr-header-company { display: table-cell; vertical-align: middle; }
+                        .kr-header-logo { width: 22%; text-align: center; }
+                        .kr-logo { max-width: 44mm; max-height: 27mm; }
+                        .kr-header-company { width: 78%; text-align: center; }
+                        .kr-company-name { font-size: 29px; font-weight: 800; line-height: 1; }
+                        .kr-company-main { color: #be2731; }
+                        .kr-company-pale { color: #273c89; margin-left: 5px; }
+                        .kr-company-subtitle { color: #d18a22; font-size: 14px; font-weight: 700; line-height: 1.25; margin-top: 1px; white-space: pre-line; }
+                        .kr-company-detail { font-size: 9px; line-height: 1.3; margin-top: 2px; }
+                        .kr-shop-block { margin-top: 2px; }
+                        .kr-shop-address { text-align: center; white-space: normal; }
+                        .kr-shop-label { font-weight: 700; margin-right: 5px; }
+                        .kr-shop-contacts { display: table; width: 100%; table-layout: fixed; margin-top: 1px; }
+                        .kr-shop-contact { display: table-cell; width: 50%; text-align: center; white-space: nowrap; }
+                        .kr-contact-label { font-weight: 700; margin-right: 3px; }
+                        .kr-title-row { position: relative; margin: 3px 0 5px; min-height: 22px; }
+                        .kr-title { text-align: center; font-size: 18px; font-weight: 800; }
+                        .kr-copy-no { position: absolute; right: 8px; top: 0; font-size: 18px; font-weight: 700; }
+                        table { width: 100%; border-collapse: collapse; }
+                        .kr-customer td { height: 21px; padding: 2px 4px; vertical-align: bottom; }
+                        .kr-customer .kr-label { width: 16%; font-weight: 700; white-space: nowrap; }
+                        .kr-customer .kr-value { border-bottom: 1px dotted #333; }
+                        .kr-customer .kr-right-label { width: 13%; font-weight: 700; white-space: nowrap; }
+                        .kr-customer .kr-right-value { width: 27%; border-bottom: 1px dotted #333; }
+                        .kr-lines { margin-top: 5px; table-layout: fixed; }
+                        .kr-lines th { color: #fff !important; background-color: #273c89 !important; border: 1px solid #333; padding: 5px 3px; font-size: 11px; text-align: center; }
+                        .kr-lines td { border: 1px solid #555; padding: 3px 4px; height: 21px; vertical-align: middle; }
+                        .kr-center { text-align: center; }
+                        .kr-right { text-align: right; }
+                        .kr-description { white-space: pre-line; }
+                        .kr-bottom { display: table; width: 100%; table-layout: fixed; }
+                        .kr-notes, .kr-totals { display: table-cell; vertical-align: top; }
+                        .kr-notes { width: 66%; padding: 5px 10px 0 3px; box-sizing: border-box; line-height: 1.45; }
+                        .kr-service-notes { min-height: 42px; font-size: 10px; line-height: 1.45; white-space: pre-line; }
+                        .kr-totals { width: 34%; box-sizing: border-box; }
+                        .kr-totals td { border: 1px solid #555; padding: 5px 6px; }
+                        .kr-totals .kr-total-label { width: 47.06%; font-weight: 700; }
+                        .kr-totals .kr-net { font-size: 12px; font-weight: 800; }
+                        .kr-service-boxes { width: 100%; margin-top: 4px; table-layout: fixed; }
+                        .kr-service-boxes td { background-color: #8a8a8a !important; color: #111 !important; padding: 4px; text-align: center; font-weight: 700; }
+                        .kr-service-boxes .kr-mm-label { font-size: 10px; line-height: 1.35; margin-bottom: 2px; }
+                        .kr-service-boxes .kr-en-label { font-size: 10px; line-height: 1.2; }
+                        .kr-kilo-entry-line { width: 88%; height: 13px; margin: 1px auto 0; border-bottom: 1px dotted #333; }
+                        .kr-signatures { margin-top: 22px; table-layout: fixed; }
+                        .kr-single-page .kr-signatures { position: absolute; left: 0; right: 0; bottom: 2mm; }
+                        .kr-signatures td { width: 33.33%; padding: 0 10px; text-align: center; }
+                        .kr-sign-line { border-top: 1px dotted #333; padding-top: 4px; font-weight: 600; }
+                    </style>
+                    <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" class="kr-watermark"/>
+                    <div t-attf-class="kr-content #{'kr-single-page' if len(lines) &lt;= 15 else ''}">
+                        <div class="kr-header">
+                            <div class="kr-header-logo"><img t-if="company.logo" t-att-src="image_data_uri(company.logo)" class="kr-logo"/></div>
+                            <div class="kr-header-company">
+                                <div class="kr-company-name">
+                                    <span class="kr-company-main">KING RIVER</span>
+                                    <span class="kr-company-pale">PALE</span>
+                                </div>
+                                <div class="kr-company-subtitle">AUTO SERVICES &amp; SPARE PARTS</div>
+                                <div class="kr-company-detail kr-shop-block">
+                                    <div class="kr-shop-address">
+                                        <span class="kr-shop-label">ဆိုင် (၁)</span>
+                                        <span t-esc="shop_1_address"/>
+                                    </div>
+                                    <div class="kr-shop-contacts">
+                                        <div class="kr-shop-contact">
+                                            <span class="kr-contact-label">Spare Part (အပိုပစ္စည်း)</span>
+                                            <span>☎ </span><span t-esc="shop_1_spare_phone"/>
+                                        </div>
+                                        <div class="kr-shop-contact">
+                                            <span class="kr-contact-label">Service (ဝန်ဆောင်မှု)</span>
+                                            <span>☎ </span><span t-esc="shop_1_service_phone"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="kr-company-detail kr-shop-block">
+                                    <div class="kr-shop-address">
+                                        <span class="kr-shop-label">ဆိုင် (၂)</span>
+                                        <span t-esc="shop_2_address"/>
+                                    </div>
+                                    <div class="kr-shop-address">
+                                        <span>☎ </span><span t-esc="shop_2_phone"/>
+                                        <t t-if="company.invoice_shop_2_spare_phone">
+                                            <span class="kr-contact-label">Spare Part:</span>
+                                            <span t-field="company.invoice_shop_2_spare_phone"/>
+                                        </t>
+                                        <t t-if="company.invoice_shop_2_service_phone">
+                                            <span class="kr-contact-label">Service:</span>
+                                            <span t-field="company.invoice_shop_2_service_phone"/>
+                                        </t>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kr-title-row">
+                            <div class="kr-title">SALE INVOICE</div>
+                            <div class="kr-copy-no" t-if="doc.name and doc.name != '/'"><span t-field="doc.name"/></div>
+                        </div>
+                        <table class="kr-customer">
+                            <tr>
+                                <td class="kr-label">Customer Name :</td><td class="kr-value"><span t-field="doc.partner_id.name"/></td>
+                                <td class="kr-right-label">Invoice No :</td><td class="kr-right-value"><span t-field="doc.name"/></td>
+                            </tr>
+                            <tr>
+                                <td class="kr-label">Phone No :</td><td class="kr-value"><span t-esc="doc.partner_id.phone or doc.partner_id.mobile or ''"/></td>
+                                <td class="kr-right-label">Date :</td><td class="kr-right-value"><span t-field="doc.invoice_date"/></td>
+                            </tr>
+                            <tr>
+                                <td class="kr-label">Address :</td>
+                                <td class="kr-value" colspan="3" style="white-space: pre-line;"><span t-esc="customer_address"/></td>
+                            </tr>
+                        </table>
+                        <table class="kr-lines">
+                            <thead><tr>
+                                <th style="width: 7%;">SR.</th><th style="width: 49%;">DESCRIPTION</th><th style="width: 10%;">QTY</th><th style="width: 16%;">PRICE</th><th style="width: 18%;">AMOUNT</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr t-foreach="lines" t-as="line">
+                                    <td class="kr-center"><span t-esc="line_index + 1"/></td>
+                                    <td class="kr-description">
+                                        <span t-if="line.product_id" t-field="line.product_id.name"/>
+                                        <span t-else="" t-field="line.name"/>
+                                    </td>
+                                    <td class="kr-center"><span t-field="line.quantity"/></td>
+                                    <td class="kr-right"><span t-field="line.price_unit" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                    <td class="kr-right"><span t-field="line.price_subtotal" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td>
+                                </tr>
+                                <tr t-foreach="range(max(0, 15 - len(lines)))" t-as="blank_row">
+                                    <td class="kr-center"><span t-esc="len(lines) + blank_row + 1"/></td><td></td><td></td><td></td><td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="kr-bottom">
+                            <div class="kr-notes">
+                                <div t-if="doc.narration"><span t-field="doc.narration"/></div>
+                                <div class="kr-service-notes">
+                                    <span t-if="company.invoice_service_notes" t-field="company.invoice_service_notes"/>
+                                    <span t-else="">ဝယ်ယူပြီးပစ္စည်းများကို (  ) ရက်အတွင်း လဲလှယ်ဝယ်ယူနိုင်ပါသည်။
+ဝယ်ယူပြီးပစ္စည်းများကို ငွေပြန်မအမ်းပါ။
+ဝယ်ယူပြီးပစ္စည်းများကို အထူးကျေးဇူးတင်ရှိပါသည်။</span>
+                                </div>
+                                <table class="kr-service-boxes">
+                                    <tr>
+                                        <td>
+                                            <div class="kr-en-label">Engine Oil Kilo</div>
+                                            <div class="kr-kilo-entry-line"></div>
+                                        </td>
+                                        <td>
+                                            <div class="kr-en-label">Auto Oil Kilo</div>
+                                            <div class="kr-kilo-entry-line"></div>
+                                        </td>
+                                        <td>
+                                            <div class="kr-en-label">Engine Service Kilo</div>
+                                            <div class="kr-kilo-entry-line"></div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="kr-totals"><table>
+                                <tr><td class="kr-total-label">Sub Total</td><td class="kr-right"><span t-esc="gross_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td></tr>
+                                <tr><td class="kr-total-label">Discount</td><td class="kr-right"><span t-esc="discount_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td></tr>
+                                <tr><td class="kr-total-label">Paid Amount</td><td class="kr-right"><span t-esc="paid_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td></tr>
+                                <tr><td class="kr-total-label">Tax</td><td class="kr-right"><span t-field="doc.amount_tax" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td></tr>
+                                <tr class="kr-net"><td class="kr-total-label">Net Amount</td><td class="kr-right"><span t-field="doc.amount_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/></td></tr>
+                            </table></div>
+                        </div>
+                        <table class="kr-signatures"><tr>
+                            <td><div class="kr-sign-line">Customer Signature</div></td><td><div class="kr-sign-line">Sale Person Signature</div></td><td><div class="kr-sign-line">Cashier Signature</div></td>
+                        </tr></table>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
