@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="daily_stock_summary_wizard_view_form" model="ir.ui.view">
+        <field name="name">daily.stock.summary.wizard.form</field>
+        <field name="model">daily.stock.summary.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Daily Stock In / Out Summary">
+                <group>
+                    <field name="company_id" invisible="1"/>
+                    <field name="date"/>
+                    <field name="location_ids"
+                           widget="many2many_tags"
+                           placeholder="All Internal Locations"
+                           options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"/>
+                </group>
+                <footer>
+                    <button name="print_report"
+                            type="object"
+                            string="Print XLSX"
+                            class="oe_highlight"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_daily_stock_summary" model="ir.actions.act_window">
+        <field name="name">Daily Stock In / Out Summary</field>
+        <field name="res_model">daily.stock.summary.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_daily_stock_summary"
+              name="Daily Stock In / Out Summary"
+              parent="stock.menu_warehouse_report"
+              action="action_daily_stock_summary"
+              groups="stock.group_stock_user"
+              sequence="210"/>
+</odoo>

@@ -1,6 +1,6 @@
 {
     "name": "Workshop Job Card",
-    "version": "18.0.1.19.0",
+    "version": "18.0.1.20.0",
     "summary": "Customer Job Cards integrated with Repair Orders",
     "category": "Repair/Operations",
     "author": "dev_pmk",
@@ -12,6 +12,7 @@
         "web",
         "report_qweb_direct_print",
         "hr",
+        "product_internal",
         "workshop_product_brand",
         "workshop_customer_vehicle",
     ],

@@ -3,11 +3,14 @@
 {
     'name': 'Custom Detail Report',
 
+    'version': '18.0.1.1.0',
+
     'category': 'Reporting',
 
     'sequence': 39,
 
     'summary': 'Custom report',
+    'author': 'dev_pmk',
 
     'description': "",
 
@@ -21,6 +24,7 @@
         'account',
         'account_payment_channel',
         'workshop_product_brand',
+        'product_internal',
         'report_controller',
     ],
 
@@ -30,6 +34,7 @@
         'wizards/purchase_detail_report.xml',
         'wizards/sale_analysis_detail_report_wizard.xml',
         'wizards/daily_sales_summary_report.xml',
+        'wizards/daily_stock_summary_report.xml',
     ],
 
     'installable': True,
