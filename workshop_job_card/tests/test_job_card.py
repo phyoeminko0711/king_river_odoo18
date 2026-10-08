@@ -179,6 +179,28 @@ class TestWorkshopJobCard(TransactionCase):
             {"labour_rate", "labor_rate", "employee_cost"}.intersection(line._fields)
         )
 
+    def test_manual_product_line_is_included_and_can_be_deleted_in_draft(self):
+        card = self._create_card()
+        product = self.products[0]
+        line = self.env["workshop.job.card.line"].create(
+            {
+                "job_card_id": card.id,
+                "product_id": product.id,
+                "unit_price": 125000,
+            }
+        )
+
+        self.assertFalse(line.job_card_service_id)
+        self.assertEqual(line.brand_id, product.brand_id)
+        self.assertEqual(line.part_number, product.default_code)
+        self.assertEqual(line.product_uom_id, product.uom_id)
+        self.assertFalse(line.selected)
+        self.assertEqual(card.total_amount, line.amount)
+
+        line.unlink()
+        self.assertFalse(line.exists())
+        self.assertEqual(card.total_amount, 0)
+
     def test_only_one_selected_option_per_service(self):
         card = self._create_card()
         first = self._add_line(card, product=self.products[0], selected=True)
@@ -247,15 +269,12 @@ class TestWorkshopJobCard(TransactionCase):
 
     def test_send_approve_and_backend_protection(self):
         card = self._create_card()
-        with self.assertRaisesRegex(ValidationError, "at least one Repair Service"):
+        with self.assertRaisesRegex(ValidationError, "Add at least one product line"):
             self._complete_pre_customer_inspections(card)
             card.action_send_to_customer()
-        line = self._add_line(card)
+        line = self._add_line(card, selected=True)
         self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
-        with self.assertRaisesRegex(ValidationError, "Select at least one"):
-            card.action_approve()
-        line.selected = True
         card.action_approve()
         self.assertEqual(card.state, "approved")
         with self.assertRaisesRegex(UserError, "cannot be modified"):
@@ -263,7 +282,7 @@ class TestWorkshopJobCard(TransactionCase):
         with self.assertRaisesRegex(UserError, "cannot be modified"):
             line.write({"selected": False})
 
-    def test_send_requires_options_for_every_repair_service(self):
+    def test_hidden_repair_service_does_not_require_an_option(self):
         card = self._create_card()
         empty_service = self.env["workshop.repair.service"].create(
             {"name": "Empty Brake Inspection"}
@@ -271,15 +290,19 @@ class TestWorkshopJobCard(TransactionCase):
         self.env["workshop.job.card.service"].create(
             {"job_card_id": card.id, "repair_service_id": empty_service.id}
         )
+        selected = self._add_line(
+            card,
+            product=self.products[0],
+            service="Selected Product Service",
+            selected=True,
+        )
+        self._complete_pre_customer_inspections(card)
+        card.action_send_to_customer()
+        card.action_approve()
+        self.assertEqual(card.state, "approved")
+        self.assertTrue(selected.selected)
 
-        with self.assertRaisesRegex(
-            ValidationError,
-            "(?s)Product Option.*Empty Brake Inspection",
-        ):
-            self._complete_pre_customer_inspections(card)
-            card.action_send_to_customer()
-
-    def test_approve_requires_one_selection_for_each_service(self):
+    def test_approve_requires_at_least_one_selected_product(self):
         card = self._create_card()
         selected = self._add_line(
             card,
@@ -299,23 +322,15 @@ class TestWorkshopJobCard(TransactionCase):
         )
         self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
-
-        with self.assertRaises(ValidationError) as error:
-            card.action_approve()
-        message = str(error.exception)
-        self.assertIn("Please select one Product Option", message)
-        self.assertIn("- Front Brake Repair Approval", message)
-        self.assertIn("- Engine Oil Change Approval", message)
-
-        brake.selected = True
-        oil.selected = True
         card.action_approve()
         self.assertEqual(card.state, "approved")
         self.assertTrue(selected.selected)
+        self.assertFalse(brake.selected)
+        self.assertFalse(oil.selected)
 
     def test_reject_cancel_and_reset(self):
         rejected = self._create_card()
-        self._add_line(rejected)
+        self._add_line(rejected, selected=True)
         self._complete_pre_customer_inspections(rejected)
         rejected.action_send_to_customer()
         rejected.action_reject()
@@ -679,9 +694,9 @@ class TestWorkshopJobCard(TransactionCase):
         self.assertEqual(oil_move.price_unit, selected_oil.unit_price)
         self.assertEqual(card.state, "repair_created")
 
-    def test_repair_creation_revalidates_every_service_selection(self):
+    def test_repair_creation_uses_selected_products_only(self):
         card = self._create_card()
-        self._add_line(
+        selected = self._add_line(
             card,
             product=self.products[0],
             selected=True,
@@ -693,16 +708,8 @@ class TestWorkshopJobCard(TransactionCase):
             service="Missing Repair Transfer Selection",
         )
         card._workflow_write({"state": "approved"})
-
-        with self.assertRaisesRegex(
-            ValidationError,
-            "(?s)Please select one Product Option.*Missing Repair Transfer Selection",
-        ):
-            card.action_create_repair_order()
-        self.assertFalse(card.repair_order_id)
-        self.assertFalse(
-            self.env["repair.order"].search([("job_card_id", "=", card.id)])
-        )
+        card.action_create_repair_order()
+        self.assertEqual(card.repair_order_id.move_ids.product_id, selected.product_id)
 
     def test_form_has_part_number_comparison_repair_options_design(self):
         form = etree.fromstring(self.env.ref("workshop_job_card.view_job_card_form").arch_db)

@@ -175,13 +175,11 @@ class WorkshopJobCard(models.Model):
     labour_cost = fields.Monetary(
         string="Labour Cost",
         default=0.0,
-        currency_field="currency_id",
         tracking=True,
     )
     service_cost = fields.Monetary(
         string="Service Cost",
         default=0.0,
-        currency_field="currency_id",
         tracking=True,
     )
     state = fields.Selection(
@@ -348,12 +346,10 @@ class WorkshopJobCard(models.Model):
     def _compute_total_amount(self):
         for card in self:
             selected_lines = card.line_ids.filtered(
-                lambda line: line.selected and line.job_card_service_id
+                lambda line: not line.job_card_service_id or line.selected
             )
-            standalone_lines = card.line_ids.filtered(lambda line: not line.job_card_service_id)
             card.total_amount = (
                 sum(selected_lines.mapped("amount"))
-                + sum(standalone_lines.mapped("amount"))
                 + card.labour_cost
                 + card.service_cost
             )
@@ -735,16 +731,19 @@ class WorkshopJobCard(models.Model):
             raise ValidationError(
                 _("Customer, Vehicle, and Technician are required before sending.")
             )
-        if not self.line_ids:
+        if not self.line_ids.filtered(
+            lambda line: not line.job_card_service_id or line.selected
+        ):
             raise ValidationError(_("Add at least one product line before sending the Job Card."))
         self._workflow_write({"state": "sent"})
         return True
 
     def action_approve(self):
         self._ensure_state("sent")
-        if not self.line_ids:
+        if not self.line_ids.filtered(
+            lambda line: not line.job_card_service_id or line.selected
+        ):
             raise ValidationError(_("Add at least one product line before approval."))
-        self._raise_for_incomplete_service_selections()
         self._workflow_write(
             {
                 "state": "approved",
@@ -780,9 +779,9 @@ class WorkshopJobCard(models.Model):
             raise UserError(_("A Repair Order already exists for this Job Card."))
         self._ensure_state("approved")
 
-        self._raise_for_incomplete_service_selections()
         product_lines = self.line_ids.filtered(
-            lambda line: line.product_id and (not line.job_card_service_id or line.selected)
+            lambda line: line.product_id
+            and (not line.job_card_service_id or line.selected)
         )
         if not product_lines:
             raise ValidationError(_("Add at least one product line before creating a Repair Order."))

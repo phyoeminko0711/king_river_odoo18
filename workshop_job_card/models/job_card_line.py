@@ -121,6 +121,12 @@ class WorkshopJobCardLine(models.Model):
         if self.product_id:
             self.product_uom_id = self.product_id.uom_id
             self.unit_price = self.product_id.lst_price
+            self.lh_rh = self._get_product_lh_rh(self.product_id)
+
+    @api.model
+    def _get_product_lh_rh(self, product):
+        value = (product.product_tmpl_id.lh_rh or "").strip().lower()
+        return value if value in {"lh", "rh"} else False
 
     @api.onchange("selected", "job_card_service_id")
     def _onchange_selected(self):
@@ -150,6 +156,7 @@ class WorkshopJobCardLine(models.Model):
             if product:
                 vals.setdefault("product_uom_id", product.uom_id.id)
                 vals.setdefault("unit_price", product.lst_price)
+                vals.setdefault("lh_rh", self._get_product_lh_rh(product))
         lines = super().create(vals_list)
         legacy_selected_lines = lines.filtered(lambda line: line.selected and line.job_card_service_id)
         legacy_selected_lines._sync_selected_option()
@@ -158,6 +165,9 @@ class WorkshopJobCardLine(models.Model):
 
     def write(self, vals):
         vals = dict(vals)
+        if vals.get("product_id"):
+            product = self.env["product.product"].browse(vals["product_id"])
+            vals["lh_rh"] = self._get_product_lh_rh(product)
         business_fields = {
             "sequence",
             "job_card_service_id",
