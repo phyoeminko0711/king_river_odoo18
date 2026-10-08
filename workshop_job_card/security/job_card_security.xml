@@ -28,5 +28,15 @@
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[Command.set([])]"/>
         </record>
+        <record id="rule_job_card_line_unlink_draft" model="ir.rule">
+            <field name="name">Job Card Lines: delete in draft only</field>
+            <field name="model_id" ref="model_workshop_job_card_line"/>
+            <field name="domain_force">[('job_card_id.state', '=', 'draft')]</field>
+            <field name="groups" eval="[Command.link(ref('workshop_job_card.group_workshop_user'))]"/>
+            <field name="perm_read" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
     </data>
 </odoo>
