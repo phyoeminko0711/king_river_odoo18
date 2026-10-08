@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sale.action_quotations_with_onboarding" model="ir.actions.act_window">
+        <field name="name">Stock Request</field>
+    </record>
+
+    <record id="sale.action_quotations" model="ir.actions.act_window">
+        <field name="name">Stock Request</field>
+    </record>
+
+    <record id="sale.menu_sale_quotations" model="ir.ui.menu">
+        <field name="name">Stock Request</field>
+    </record>
+
+    <record id="view_order_form_stock_request" model="ir.ui.view">
+        <field name="name">sale.order.form.stock.request</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="string">Stock Request</attribute>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_quotation_list_stock_request" model="ir.ui.view">
+        <field name="name">sale.order.list.stock.request</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="string">Stock Request</attribute>
+            </list>
+        </field>
+    </record>
+</odoo>
