@@ -11,6 +11,7 @@
         "crm",
         "stock",
         "analytic",
+        "hr",
     ],
     "data": [
         "views/stock_request_views.xml",
