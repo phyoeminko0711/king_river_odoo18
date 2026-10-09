@@ -5,6 +5,18 @@ from odoo.exceptions import ValidationError
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    stock_requester_id = fields.Many2one(
+        "hr.employee",
+        string="Stock Requester",
+        tracking=True,
+        check_company=True,
+    )
+    stock_issuer_id = fields.Many2one(
+        "hr.employee",
+        string="Stock Issuer",
+        tracking=True,
+        check_company=True,
+    )
     analytic_account_id = fields.Many2one(
         "account.analytic.account",
         string="Analytic Account",
