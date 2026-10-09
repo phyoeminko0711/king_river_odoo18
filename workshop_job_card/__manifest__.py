@@ -1,6 +1,6 @@
 {
     "name": "Workshop Job Card",
-    "version": "18.0.1.20.0",
+    "version": "18.0.1.21.0",
     "summary": "Customer Job Cards integrated with Repair Orders",
     "category": "Repair/Operations",
     "author": "dev_pmk",

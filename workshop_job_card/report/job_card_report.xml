@@ -275,9 +275,8 @@
                         </tbody>
                     </table>
 
-                    <t t-set="selected_lines" t-value="doc.line_ids.filtered(lambda line: line.selected and line.job_card_service_id)"/>
-                    <t t-set="standalone_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id)"/>
-                    <t t-set="parts_total" t-value="sum(selected_lines.mapped('amount')) + sum(standalone_lines.mapped('amount'))"/>
+                    <t t-set="selected_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id or line.selected)"/>
+                    <t t-set="parts_total" t-value="sum(selected_lines.mapped('amount'))"/>
                     <t t-set="labour_total" t-value="doc.labour_cost"/>
                     <t t-set="service_total" t-value="doc.service_cost"/>
                     <table class="kr-total-table">
