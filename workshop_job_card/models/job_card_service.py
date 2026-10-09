@@ -206,7 +206,7 @@ class WorkshopJobCardService(models.Model):
         return {
             "job_card_service_id": self.id,
             "product_id": product.id,
-            "lh_rh": self.lh_rh,
+            "lh_rh": self.env["workshop.job.card.line"]._get_product_lh_rh(product),
             "quantity": 1.0,
             "product_uom_id": product.uom_id.id,
             "unit_price": product.lst_price,
@@ -236,8 +236,6 @@ class WorkshopJobCardService(models.Model):
                     option = OptionLine.new(service_line._prepare_option_line_values(product))
                     option.job_card_service_id = service_line
                     new_lines |= option
-                for option in kept_lines.filtered("generated_by_service"):
-                    option.lh_rh = service_line.lh_rh
                 service_line.option_line_ids = kept_lines | new_lines
                 continue
 
@@ -255,9 +253,3 @@ class WorkshopJobCardService(models.Model):
                     skip_option_generation=True,
                     skip_job_card_state_check=True,
                 ).create(values)
-            generated_options = service_line.option_line_ids.filtered("generated_by_service")
-            if generated_options:
-                generated_options.with_context(
-                    skip_job_card_state_check=True,
-                    skip_selection_sync=True,
-                ).write({"lh_rh": service_line.lh_rh})
