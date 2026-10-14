@@ -35,6 +35,10 @@
             <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="attributes">
                 <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}</attribute>
             </xpath>
+            <xpath expr="//field[@name='move_ids']/list/field[@name='product_id']" position="after">
+                <field name="stock_out" width="90px" readonly="parent.state in ('done', 'cancel')"/>
+                <field name="stock_return" width="110px" readonly="parent.state in ('done', 'cancel')"/>
+            </xpath>
         </field>
     </record>
 </odoo>
