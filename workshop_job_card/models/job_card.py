@@ -27,8 +27,6 @@ class WorkshopJobCard(models.Model):
         "recommendation",
         "service_line_ids",
         "line_ids",
-        "labour_cost",
-        "service_cost",
         "currency_id",
     }
     _WORKFLOW_FIELDS = {
@@ -171,16 +169,6 @@ class WorkshopJobCard(models.Model):
         compute="_compute_total_amount",
         store=True,
         currency_field="currency_id",
-    )
-    labour_cost = fields.Monetary(
-        string="Labour Cost",
-        default=0.0,
-        tracking=True,
-    )
-    service_cost = fields.Monetary(
-        string="Service Cost",
-        default=0.0,
-        tracking=True,
     )
     state = fields.Selection(
         [
@@ -340,19 +328,13 @@ class WorkshopJobCard(models.Model):
     @api.depends(
         "line_ids.selected",
         "line_ids.amount",
-        "labour_cost",
-        "service_cost",
     )
     def _compute_total_amount(self):
         for card in self:
             selected_lines = card.line_ids.filtered(
                 lambda line: not line.job_card_service_id or line.selected
             )
-            card.total_amount = (
-                sum(selected_lines.mapped("amount"))
-                + card.labour_cost
-                + card.service_cost
-            )
+            card.total_amount = sum(selected_lines.mapped("amount"))
 
     @api.onchange("customer_id")
     def _onchange_customer_id(self):
@@ -376,14 +358,6 @@ class WorkshopJobCard(models.Model):
     def _check_mileage(self):
         if any(card.mileage < 0 for card in self):
             raise ValidationError(_("Mileage cannot be negative."))
-
-    @api.constrains("labour_cost", "service_cost")
-    def _check_service_amounts(self):
-        for card in self:
-            if card.labour_cost < 0:
-                raise ValidationError(_("Labour Cost must be greater than or equal to zero."))
-            if card.service_cost < 0:
-                raise ValidationError(_("Service Cost must be greater than or equal to zero."))
 
     @api.constrains("technician_id", "assistant_technician_id", "testing_driver_id")
     def _check_unique_employee_roles(self):
@@ -656,39 +630,6 @@ class WorkshopJobCard(models.Model):
             % service_names
         )
 
-    def _get_single_repair_charge_product(self, flag_field):
-        self.ensure_one()
-        product_domain = [
-            ("active", "=", True),
-            ("product_tmpl_id.active", "=", True),
-            ("type", "=", "service"),
-            ("product_tmpl_id.%s" % flag_field, "=", True),
-        ]
-        products = self.env["product.product"].search(product_domain)
-        if flag_field == "is_labour_cost":
-            if not products:
-                raise ValidationError(_("No Labour Cost service product is configured."))
-            if len(products) > 1:
-                raise ValidationError(_("Only one active Labour Cost service product may be configured."))
-        else:
-            if not products:
-                raise ValidationError(_("No Workshop Service Product is configured."))
-            if len(products) > 1:
-                raise ValidationError(_("Only one active Workshop Service Product may be configured."))
-        return products
-
-    def _prepare_repair_charge_line_vals(self, repair, product, amount, charge_type, sequence):
-        self.ensure_one()
-        return {
-            "sequence": sequence,
-            "repair_id": repair.id,
-            "charge_type": charge_type,
-            "product_id": product.id,
-            "product_uom_qty": 1.0,
-            "product_uom_id": product.uom_id.id,
-            "price_unit": amount,
-        }
-
     def _prepare_service_product_charge_line_vals(self, repair, line, sequence):
         self.ensure_one()
         return {
@@ -700,25 +641,6 @@ class WorkshopJobCard(models.Model):
             "product_uom_id": line.product_uom_id.id,
             "price_unit": line.unit_price,
         }
-
-    def _prepare_repair_charge_lines(self, repair):
-        self.ensure_one()
-        charge_vals = []
-        if self.labour_cost > 0:
-            labour_product = self._get_single_repair_charge_product("is_labour_cost")
-            charge_vals.append(
-                self._prepare_repair_charge_line_vals(
-                    repair, labour_product, self.labour_cost, "labour", 10
-                )
-            )
-        if self.service_cost > 0:
-            service_product = self._get_single_repair_charge_product("is_workshop_service")
-            charge_vals.append(
-                self._prepare_repair_charge_line_vals(
-                    repair, service_product, self.service_cost, "service", 20
-                )
-            )
-        return charge_vals
 
     def action_send_to_customer(self):
         self._ensure_state("draft")
@@ -814,7 +736,7 @@ class WorkshopJobCard(models.Model):
                     for line in part_lines
                 ]
             )
-        charge_vals = self._prepare_repair_charge_lines(repair)
+        charge_vals = []
         service_lines = product_lines.filtered(lambda line: line.product_id.type == "service")
         charge_vals.extend(
             self._prepare_service_product_charge_line_vals(repair, line, 100 + index)

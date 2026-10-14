@@ -391,22 +391,8 @@ class TestWorkshopJobCard(TransactionCase):
                 }
             )
 
-    def test_repair_order_receives_labour_and_service_charge_lines(self):
-        labour_product = self.env["product.product"].create(
-            {
-                "name": "Job Card Labour Cost",
-                "type": "service",
-                "is_labour_cost": True,
-            }
-        )
-        service_product = self.env["product.product"].create(
-            {
-                "name": "Job Card Workshop Service Cost",
-                "type": "service",
-                "is_workshop_service": True,
-            }
-        )
-        card = self._create_card(labour_cost=15000.0, service_cost=25000.0)
+    def test_repair_order_does_not_create_header_cost_charges(self):
+        card = self._create_card()
         self._add_line(card, product=self.products[0], selected=True)
         self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
@@ -415,30 +401,9 @@ class TestWorkshopJobCard(TransactionCase):
 
         repair = card.repair_order_id
         self.assertEqual(len(repair.move_ids), 1)
-        self.assertEqual(len(repair.repair_charge_line_ids), 2)
-        labour_line = repair.repair_charge_line_ids.filtered(
-            lambda line: line.charge_type == "labour"
-        )
-        service_line = repair.repair_charge_line_ids.filtered(
-            lambda line: line.charge_type == "service"
-        )
-        self.assertEqual(labour_line.product_id, labour_product)
-        self.assertEqual(labour_line.price_unit, 15000.0)
-        self.assertEqual(service_line.product_id, service_product)
-        self.assertEqual(service_line.price_unit, 25000.0)
-
-    def test_repair_charge_product_configuration_is_required(self):
-        card = self._create_card(labour_cost=15000.0)
-        self._add_line(card, product=self.products[0], selected=True)
-        self._complete_pre_customer_inspections(card)
-        card.action_send_to_customer()
-        card.action_approve()
-
-        with self.assertRaisesRegex(
-            ValidationError,
-            "No Labour Cost service product is configured",
-        ):
-            card.action_create_repair_order()
+        self.assertFalse(repair.repair_charge_line_ids)
+        self.assertNotIn("labour_cost", card._fields)
+        self.assertNotIn("service_cost", card._fields)
 
     def test_inspections_are_created_only_from_workflow_buttons(self):
         card = self._create_card()
