@@ -175,8 +175,6 @@
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
-                                <field name="labour_cost" widget="float" readonly="state != 'draft'"/>
-                                <field name="service_cost" widget="float" readonly="state != 'draft'"/>
                                 <field name="total_amount" readonly="1"/>
                                 <field name="currency_id" invisible="1"/>
                             </group>

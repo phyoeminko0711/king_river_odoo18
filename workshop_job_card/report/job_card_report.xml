@@ -277,25 +277,11 @@
 
                     <t t-set="selected_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id or line.selected)"/>
                     <t t-set="parts_total" t-value="sum(selected_lines.mapped('amount'))"/>
-                    <t t-set="labour_total" t-value="doc.labour_cost"/>
-                    <t t-set="service_total" t-value="doc.service_cost"/>
                     <table class="kr-total-table">
                         <tr>
                             <td class="kr-total-label">Parts Total</td>
                             <td class="kr-right">
                                 <span t-esc="parts_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="kr-total-label">Labour Cost</td>
-                            <td class="kr-right">
-                                <span t-esc="labour_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="kr-total-label">Service Cost</td>
-                            <td class="kr-right">
-                                <span t-esc="service_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                             </td>
                         </tr>
                         <tr class="kr-grand-total">
