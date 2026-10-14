@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_purchase_rate_adjustment_list" model="ir.ui.view">
+        <field name="name">purchase.rate.adjustment.list</field>
+        <field name="model">purchase.rate.adjustment</field>
+        <field name="arch" type="xml">
+            <list string="Rate Adjustment History"
+                  js_class="purchase_rate_adjustment_history_list"
+                  create="0" edit="0" delete="0" duplicate="0" import="0">
+                <field name="rate_ids" widget="many2many_tags"/>
+                <field name="applied_at" string="Confirm Date" widget="date" width="130px"/>
+                <field name="amount_per_kg"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_purchase_rate_adjustment" model="ir.actions.act_window">
+        <field name="name">Rate Adjustment History</field>
+        <field name="res_model">purchase.rate.adjustment</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_purchase_rate_adjustment_list"/>
+    </record>
+
+    <menuitem id="menu_purchase_rate_adjustment"
+              name="Rate Adjustments"
+              parent="purchase.menu_purchase_config"
+              action="action_purchase_rate_adjustment"
+              groups="purchase.group_purchase_manager"
+              sequence="85"/>
+</odoo>
