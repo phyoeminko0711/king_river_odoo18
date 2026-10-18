@@ -396,6 +396,77 @@ class WorkshopJobCard(models.Model):
         )
         return pdf_content
 
+    def _get_brand_quote_matrix(self):
+        self.ensure_one()
+        lines = self.line_ids.sorted(lambda line: (line.sequence, line.id))
+        columns = []
+        seen_brand_ids = set()
+        for line in lines:
+            brand = line.brand_id
+            if brand and brand.id not in seen_brand_ids:
+                columns.append({"id": brand.id, "name": brand.name})
+                seen_brand_ids.add(brand.id)
+        if not columns:
+            columns = [{"id": 0, "name": _("Price")}]
+
+        rows = []
+        grouped_rows = {}
+        for line in lines:
+            template = line.product_id.product_tmpl_id
+            english_name = (
+                template.english_name if "english_name" in template._fields else False
+            )
+            name = english_name or template.name or line.product_id.name
+            secondary_name = (
+                template.name if english_name and template.name != english_name else False
+            )
+            part_key = (line.part_number or template.name or str(template.id))
+            part_key = part_key.strip().casefold()
+            group_key = (
+                line.job_card_service_id.id,
+                part_key,
+                line.quantity,
+                line.product_uom_id.id,
+            )
+            brand_id = line.brand_id.id or 0
+            candidates = grouped_rows.setdefault(group_key, []) if brand_id else []
+            row = next(
+                (candidate for candidate in candidates if brand_id not in candidate["prices"]),
+                None,
+            )
+            if row is None:
+                row = {
+                    "name": name,
+                    "secondary_name": secondary_name,
+                    "quantity": line.quantity,
+                    "uom": line.product_uom_id.name,
+                    "brand_names": [],
+                    "prices": {},
+                    "amounts": {},
+                }
+                rows.append(row)
+                if brand_id:
+                    candidates.append(row)
+
+            if brand_id:
+                row["brand_names"].append(line.brand_id.name)
+                target_columns = [brand_id]
+            else:
+                target_columns = [column["id"] for column in columns]
+            for column_id in target_columns:
+                row["prices"][column_id] = line.unit_price
+                row["amounts"][column_id] = line.amount
+
+        totals = {
+            column["id"]: sum(row["amounts"].get(column["id"], 0.0) for row in rows)
+            for column in columns
+        }
+        return {
+            "columns": columns,
+            "rows": rows,
+            "totals": totals,
+        }
+
     def _get_share_pdf_filename(self):
         self.ensure_one()
         safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.name or str(self.id)).strip("_")
@@ -452,7 +523,6 @@ class WorkshopJobCard(models.Model):
 
     def _get_viber_share_message(self, share_url):
         self.ensure_one()
-        total = "%s %s" % ("{:,.2f}".format(self.total_amount), self.currency_id.name or "")
         lines = [
             _("Job Card: %s") % self.name,
             _("Customer: %s") % self.customer_id.display_name,
@@ -461,9 +531,16 @@ class WorkshopJobCard(models.Model):
             lines.append(_("Vehicle: %s") % self.vehicle_id.display_name)
         if self.plate_no:
             lines.append(_("Plate: %s") % self.plate_no)
+        matrix = self._get_brand_quote_matrix()
+        for column in matrix["columns"]:
+            total = matrix["totals"][column["id"]]
+            label = _("Total") if column["id"] == 0 else _("%s Total") % column["name"]
+            lines.append(
+                "%s: %s %s"
+                % (label, "{:,.2f}".format(total), self.currency_id.name or "")
+            )
         lines.extend(
             [
-                _("Total: %s") % total.strip(),
                 "",
                 _("View Report: %s") % share_url,
             ]

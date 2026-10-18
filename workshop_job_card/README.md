@@ -41,6 +41,13 @@ sums only selected Product Options; unselected generated alternatives never
 contribute. The former `selected_total` and selected-line count remain as hidden
 compatibility fields.
 
+The customer report compares every Product Option by brand. Products sharing a
+part number, quantity, and UoM appear on one row with a separate price and
+amount for each brand. Unbranded products appear in every brand column and
+contribute to every brand total. The report uses groups of two brands per table
+when a Job Card contains more brands. Viber share text lists the same brand
+totals. These quotation totals do not change the selected-option workflow total.
+
 Each Repair Service permits exactly one selected Product Option. Selecting a
 different sibling immediately clears the previous selection in the form and
 through backend create/write operations. A validation fallback protects import
