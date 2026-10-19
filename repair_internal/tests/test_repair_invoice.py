@@ -126,6 +126,25 @@ class TestRepairInternalInvoice(TransactionCase):
         self.assertEqual(len(invoice.invoice_line_ids), 2)
         self.assertEqual(set(invoice.invoice_line_ids.mapped("repair_move_id")), set(repair.move_ids.filtered(lambda move: move.repair_line_type == "add")))
 
+    def test_stock_return_lines_are_excluded_from_invoice(self):
+        repair = self._create_done_repair()
+        add_moves = repair.move_ids.filtered(lambda move: move.repair_line_type == "add")
+        returned_move = add_moves.filtered(lambda move: move.product_id == self.product)
+        returned_move.stock_return = True
+
+        invoice = self.env["account.move"].browse(repair.action_create_invoice()["res_id"])
+        self.assertEqual(invoice.invoice_line_ids.mapped("repair_move_id"), add_moves - returned_move)
+        self.assertFalse(invoice.invoice_line_ids.filtered(lambda line: line.repair_move_id == returned_move))
+
+    def test_all_returned_lines_block_empty_invoice(self):
+        repair = self._create_done_repair()
+        repair.move_ids.filtered(lambda move: move.repair_line_type == "add").write(
+            {"stock_return": True}
+        )
+
+        with self.assertRaisesRegex(ValidationError, "no invoiceable Repair lines"):
+            repair.action_create_invoice()
+
     def test_completed_repair_invoices_service_charge_lines(self):
         repair = self._create_done_repair(include_service_charge=True)
         charge_line = repair.repair_charge_line_ids
@@ -168,3 +187,21 @@ class TestRepairInternalInvoice(TransactionCase):
         repair = self._create_done_repair()
         with self.assertRaises(AccessError):
             repair.with_user(user).action_create_invoice()
+
+    def test_stock_out_and_return_are_mutually_exclusive(self):
+        repair = self._create_done_repair()
+        move = repair.move_ids[0]
+        move.stock_out = True
+        self.assertFalse(move.stock_return)
+
+        form_move = self.env["stock.move"].new({"stock_out": True})
+        form_move.stock_return = True
+        form_move._onchange_stock_return()
+        self.assertFalse(form_move.stock_out)
+
+        form_move.stock_out = True
+        form_move._onchange_stock_out()
+        self.assertFalse(form_move.stock_return)
+
+        with self.assertRaisesRegex(ValidationError, "cannot both be selected"):
+            move.write({"stock_out": True, "stock_return": True})

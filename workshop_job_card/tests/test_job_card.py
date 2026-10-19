@@ -201,6 +201,91 @@ class TestWorkshopJobCard(TransactionCase):
         self.assertFalse(line.exists())
         self.assertEqual(card.total_amount, 0)
 
+    def test_report_brand_matrix_groups_options_and_repeats_unbranded_price(self):
+        oem_brand = self.env["workshop.product.brand"].create({"name": "JC Test OEM 18"})
+        oem_product = self.env["product.product"].create(
+            {
+                "name": "Brake Pad",
+                "default_code": "JC-BP",
+                "type": "consu",
+                "brand_id": oem_brand.id,
+            }
+        )
+        common_product = self.env["product.product"].create(
+            {"name": "Service Supply", "type": "consu"}
+        )
+        card = self._create_card()
+        for product, quantity, price in (
+            (self.products[0], 2, 65000),
+            (oem_product, 2, 135000),
+            (common_product, 1, 19000),
+        ):
+            self.env["workshop.job.card.line"].create(
+                {
+                    "job_card_id": card.id,
+                    "product_id": product.id,
+                    "quantity": quantity,
+                    "unit_price": price,
+                }
+            )
+
+        matrix = card._get_brand_quote_matrix()
+        self.assertEqual(len(matrix["rows"]), 2)
+        self.assertEqual(len(matrix["columns"]), 2)
+        self.assertEqual(matrix["totals"][self.part_brand.id], 149000)
+        self.assertEqual(matrix["totals"][oem_brand.id], 289000)
+        brake_row = next(row for row in matrix["rows"] if row["name"] == "Brake Pad")
+        self.assertEqual(brake_row["prices"][self.part_brand.id], 65000)
+        self.assertEqual(brake_row["prices"][oem_brand.id], 135000)
+        common_row = next(row for row in matrix["rows"] if row["name"] == "Service Supply")
+        self.assertEqual(common_row["prices"][self.part_brand.id], 19000)
+        self.assertEqual(common_row["prices"][oem_brand.id], 19000)
+        message = card._get_viber_share_message("https://example.com/job_card/share/test")
+        self.assertIn("JC Test Korea 18 Total: 149,000.00", message)
+        self.assertIn("JC Test OEM 18 Total: 289,000.00", message)
+        html, _ = self.env["ir.actions.report"]._render_qweb_html(
+            "workshop_job_card.report_workshop_job_card_document", [card.id]
+        )
+        self.assertIn("JC Test OEM 18", str(html))
+        self.assertIn("Service Supply", str(html))
+
+        third_brand = self.env["workshop.product.brand"].create(
+            {"name": "JC Test Japan 18"}
+        )
+        third_product = self.env["product.product"].create(
+            {
+                "name": "Brake Pad",
+                "default_code": "JC-BP",
+                "type": "consu",
+                "brand_id": third_brand.id,
+            }
+        )
+        self.env["workshop.job.card.line"].create(
+            {
+                "job_card_id": card.id,
+                "product_id": third_product.id,
+                "quantity": 2,
+                "unit_price": 90000,
+            }
+        )
+        matrix = card._get_brand_quote_matrix()
+        self.assertEqual(len(matrix["rows"]), 2)
+        self.assertEqual([len(group) for group in matrix["column_groups"]], [2, 1])
+        self.assertEqual(matrix["totals"][third_brand.id], 199000)
+
+    def test_report_brand_matrix_without_brands_has_one_price_column(self):
+        product = self.env["product.product"].create(
+            {"name": "Unbranded Supply", "type": "consu"}
+        )
+        card = self._create_card()
+        self.env["workshop.job.card.line"].create(
+            {"job_card_id": card.id, "product_id": product.id, "quantity": 2, "unit_price": 5000}
+        )
+
+        matrix = card._get_brand_quote_matrix()
+        self.assertEqual(matrix["columns"], [{"id": 0, "name": "Price"}])
+        self.assertEqual(matrix["totals"][0], 10000)
+
     def test_only_one_selected_option_per_service(self):
         card = self._create_card()
         first = self._add_line(card, product=self.products[0], selected=True)
@@ -391,22 +476,8 @@ class TestWorkshopJobCard(TransactionCase):
                 }
             )
 
-    def test_repair_order_receives_labour_and_service_charge_lines(self):
-        labour_product = self.env["product.product"].create(
-            {
-                "name": "Job Card Labour Cost",
-                "type": "service",
-                "is_labour_cost": True,
-            }
-        )
-        service_product = self.env["product.product"].create(
-            {
-                "name": "Job Card Workshop Service Cost",
-                "type": "service",
-                "is_workshop_service": True,
-            }
-        )
-        card = self._create_card(labour_cost=15000.0, service_cost=25000.0)
+    def test_repair_order_does_not_create_header_cost_charges(self):
+        card = self._create_card()
         self._add_line(card, product=self.products[0], selected=True)
         self._complete_pre_customer_inspections(card)
         card.action_send_to_customer()
@@ -415,30 +486,9 @@ class TestWorkshopJobCard(TransactionCase):
 
         repair = card.repair_order_id
         self.assertEqual(len(repair.move_ids), 1)
-        self.assertEqual(len(repair.repair_charge_line_ids), 2)
-        labour_line = repair.repair_charge_line_ids.filtered(
-            lambda line: line.charge_type == "labour"
-        )
-        service_line = repair.repair_charge_line_ids.filtered(
-            lambda line: line.charge_type == "service"
-        )
-        self.assertEqual(labour_line.product_id, labour_product)
-        self.assertEqual(labour_line.price_unit, 15000.0)
-        self.assertEqual(service_line.product_id, service_product)
-        self.assertEqual(service_line.price_unit, 25000.0)
-
-    def test_repair_charge_product_configuration_is_required(self):
-        card = self._create_card(labour_cost=15000.0)
-        self._add_line(card, product=self.products[0], selected=True)
-        self._complete_pre_customer_inspections(card)
-        card.action_send_to_customer()
-        card.action_approve()
-
-        with self.assertRaisesRegex(
-            ValidationError,
-            "No Labour Cost service product is configured",
-        ):
-            card.action_create_repair_order()
+        self.assertFalse(repair.repair_charge_line_ids)
+        self.assertNotIn("labour_cost", card._fields)
+        self.assertNotIn("service_cost", card._fields)
 
     def test_inspections_are_created_only_from_workflow_buttons(self):
         card = self._create_card()

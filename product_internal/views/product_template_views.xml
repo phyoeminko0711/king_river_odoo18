@@ -20,6 +20,7 @@
                 </div>
             </xpath>
             <xpath expr="//group[@name='group_standard_price']/field[@name='default_code']" position="after">
+                <field name="rate_scheme_id"/>
                 <field name="car_name"/>
                 <field name="lh_rh"/>
                 <field name="model_engine"/>

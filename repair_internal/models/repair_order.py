@@ -42,6 +42,7 @@ class RepairOrder(models.Model):
         return self.move_ids.filtered(
             lambda move: move.repair_line_type == "add"
             and move.product_id
+            and not move.stock_return
             and move.state != "cancel"
             and move.id not in invoiced_move_ids
             and float_compare(
