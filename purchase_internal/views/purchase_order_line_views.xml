@@ -6,6 +6,7 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='currency_id'][not(@invisible)]" position="after">
+                <field name="exchange_rate_company" readonly="1" groups="base.group_multi_currency"/>
                 <field name="analytic_account_id"
                        options="{'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"
                        readonly="state != 'draft'"/>
@@ -14,6 +15,14 @@
                 <field name="car_name" readonly="1" optional="show"/>
                 <field name="lh_rh" readonly="1" optional="show"/>
                 <field name="model_engine" readonly="1" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='price_unit']" position="before">
+                <field name="company_currency_id" column_invisible="True"/>
+                <field name="company_price_unit" readonly="qty_invoiced != 0" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='price_unit']" position="before">
+                <field name="company_currency_id" invisible="1"/>
+                <field name="company_price_unit"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/form//field[@name='product_id']" position="after">
                 <field name="car_name" readonly="1"/>
