@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_purchase_rate_adjustment_manager,purchase.rate.adjustment manager,model_purchase_rate_adjustment,purchase.group_purchase_manager,1,0,0,0
+access_purchase_rate_adjustment_wizard_manager,purchase.rate.adjustment.wizard manager,model_purchase_rate_adjustment_wizard,purchase.group_purchase_manager,1,1,1,0
+access_product_rate_scheme_purchase_manager,product.rate.scheme purchase manager,product_internal.model_product_rate_scheme,purchase.group_purchase_manager,1,0,0,0

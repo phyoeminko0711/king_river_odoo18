@@ -5,8 +5,10 @@
     "category": "Inventory/Product",
     "author": "dev_pmk",
     "license": "LGPL-3",
-    "depends": ["product", "workshop_product_brand"],
+    "depends": ["product", "stock", "workshop_product_brand"],
     "data": [
+        "security/ir.model.access.csv",
+        "views/product_rate_scheme_views.xml",
         "views/product_template_views.xml",
     ],
     "installable": True,

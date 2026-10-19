@@ -31,6 +31,7 @@
             <t t-foreach="docs" t-as="doc">
                 <t t-set="company" t-value="doc.company_id or res_company"/>
                 <t t-set="currency" t-value="doc.currency_id or company.currency_id"/>
+                <t t-set="matrix" t-value="doc._get_brand_quote_matrix()"/>
                 <t t-set="report_filename" t-value="('Job_Card_%s' % (doc.name or doc.id)).replace('/', '_').replace(' ', '_')"/>
                 <div class="page kr-job-card">
                     <script type="text/javascript">
@@ -57,61 +58,76 @@
                             font-size: 11px;
                             color: #000;
                         }
+                        .kr-header { table-layout: fixed; }
+                        .kr-header td { vertical-align: middle; }
+                        .kr-header-logo { width: 18%; text-align: left; }
+                        .kr-header-main { width: 57%; text-align: center; }
+                        .kr-header-contact { width: 25%; text-align: right; font-weight: 700; font-size: 11px; }
                         .kr-center { text-align: center; }
-                        .kr-logo { max-height: 58px; max-width: 150px; margin-bottom: 4px; }
-                        .kr-company-name { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+                        .kr-logo { max-height: 65px; max-width: 120px; }
+                        .kr-company-name { font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
                         .kr-company-subtitle { font-size: 12px; font-weight: 600; }
                         .kr-company-line { font-size: 10px; line-height: 1.35; }
                         .kr-divider { border-top: 2px solid #000; margin: 7px 0 8px; }
                         .kr-title { font-size: 15px; font-weight: 700; text-align: center; margin: 5px 0 8px; }
                         table { width: 100%; border-collapse: collapse; }
-                        .kr-info-table td {
-                            border: 1px solid #000;
-                            padding: 4px 5px;
-                            vertical-align: top;
-                        }
-                        .kr-section-title {
-                            background: #f0f0f0;
+                        .kr-detail-section { margin: 12px 0; page-break-inside: avoid; }
+                        .kr-detail-heading {
+                            font-size: 11px;
                             font-weight: 700;
-                            text-align: center;
+                            border-bottom: 1px solid #000;
+                            padding-bottom: 3px;
+                            margin-bottom: 7px;
                         }
-                        .kr-label { width: 28%; font-weight: 700; white-space: nowrap; }
-                        .kr-value { width: 22%; }
-                        .kr-lines {
-                            margin-top: 8px;
-                            page-break-inside: auto;
+                        .kr-detail-columns { font-size: 0; }
+                        .kr-detail-column {
+                            display: inline-block;
+                            width: 50%;
+                            vertical-align: top;
+                            box-sizing: border-box;
+                            padding-right: 12px;
+                            font-size: 11px;
                         }
+                        .kr-detail-item { margin-bottom: 6px; }
+                        .kr-detail-label {
+                            display: inline-block;
+                            width: 42%;
+                            vertical-align: top;
+                            font-weight: 600;
+                        }
+                        .kr-detail-value {
+                            display: inline-block;
+                            width: 58%;
+                            vertical-align: top;
+                            overflow-wrap: anywhere;
+                        }
+                        .kr-lines { margin-top: 10px; page-break-inside: auto; table-layout: fixed; font-size: 9px; }
                         .kr-lines th {
                             border: 1px solid #000;
-                            padding: 5px 4px;
-                            background: #f0f0f0;
+                            padding: 4px 2px;
                             font-weight: 700;
                             text-align: center;
+                            overflow-wrap: anywhere;
                         }
                         .kr-lines td {
                             border: 1px solid #000;
-                            padding: 5px 4px;
+                            padding: 4px 2px;
                             vertical-align: top;
+                            overflow-wrap: anywhere;
                         }
                         .kr-lines thead { display: table-header-group; }
                         .kr-lines tr { page-break-inside: avoid; }
+                        .kr-lines .kr-description { width: 26%; }
+                        .kr-lines .kr-qty { width: 5%; }
+                        .kr-lines .kr-uom { width: 7%; }
+                        .kr-lines .kr-made-in { width: 10%; }
                         .kr-right { text-align: right; }
                         .kr-center-cell { text-align: center; }
                         .kr-nowrap { white-space: nowrap; }
                         .kr-product-main { font-weight: 600; }
                         .kr-product-sub { font-size: 10px; margin-top: 2px; }
-                        .kr-total-table {
-                            width: 42%;
-                            margin-left: auto;
-                            margin-top: 8px;
-                        }
-                        .kr-total-table td {
-                            border: 1px solid #000;
-                            padding: 5px 6px;
-                        }
-                        .kr-total-label { font-weight: 700; }
                         .kr-grand-total td {
-                            font-size: 12px;
+                            font-size: 9px;
                             font-weight: 700;
                             border-top: 2px solid #000;
                         }
@@ -140,170 +156,96 @@
                         }
                     </style>
 
-                    <div class="kr-center">
-                        <t t-set="company_mobile" t-value="company.mobile if 'mobile' in company._fields else False"/>
-                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" class="kr-logo"/>
-                        <div class="kr-company-name">
-                            <span t-field="company.name"/>
-                        </div>
-                        <div class="kr-company-subtitle" t-if="'report_header' in company._fields and company.report_header">
-                            <span t-field="company.report_header"/>
-                        </div>
-                        <div class="kr-company-line">
-                            <t t-if="company.street"><span t-field="company.street"/></t>
-                            <t t-if="company.street2">, <span t-field="company.street2"/></t>
-                            <t t-if="company.city">, <span t-field="company.city"/></t>
-                        </div>
-                        <div class="kr-company-line" t-if="company.phone or company_mobile or company.email">
-                            <t t-if="company.phone">Phone: <span t-field="company.phone"/></t>
-                            <t t-if="company_mobile">
-                                <t t-if="company.phone"> / </t>
-                                <span t-esc="company_mobile"/>
-                            </t>
-                            <t t-if="company.email">
-                                <t t-if="company.phone or company_mobile"> | </t>
-                                <span t-field="company.email"/>
-                            </t>
-                        </div>
-                    </div>
+                    <t t-set="company_mobile" t-value="company.mobile if 'mobile' in company._fields else False"/>
+                    <table class="kr-header">
+                        <tr>
+                            <td class="kr-header-logo">
+                                <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" class="kr-logo"/>
+                            </td>
+                            <td class="kr-header-main">
+                                <div class="kr-company-name"><span t-field="company.name"/></div>
+                                <div class="kr-company-subtitle" t-if="'report_header' in company._fields and company.report_header">
+                                    <span t-field="company.report_header"/>
+                                </div>
+                                <div class="kr-company-line">
+                                    <t t-if="company.street"><span t-field="company.street"/></t>
+                                    <t t-if="company.street2">, <span t-field="company.street2"/></t>
+                                    <t t-if="company.city">, <span t-field="company.city"/></t>
+                                </div>
+                            </td>
+                            <td class="kr-header-contact">
+                                <div t-if="company.phone"><span t-field="company.phone"/></div>
+                                <div t-if="company_mobile"><span t-esc="company_mobile"/></div>
+                            </td>
+                        </tr>
+                    </table>
                     <div class="kr-divider"/>
                     <div class="kr-title">JOB CARD / QUOTATION</div>
 
-                    <table class="kr-info-table">
-                        <tr>
-                            <td colspan="4" class="kr-section-title">Job Card Information</td>
-                        </tr>
-                        <tr>
-                            <td class="kr-label">Job Card No.</td>
-                            <td class="kr-value"><span t-field="doc.name"/></td>
-                            <td class="kr-label">Job Card Date</td>
-                            <td class="kr-value"><span t-field="doc.job_card_date"/></td>
-                        </tr>
-                        <tr>
-                            <td class="kr-label">Customer</td>
-                            <td class="kr-value"><span t-field="doc.customer_id"/></td>
-                            <td class="kr-label">Mileage</td>
-                            <td class="kr-value">
-                                <span t-if="doc.mileage" t-esc="'{:,.0f}'.format(doc.mileage)"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="kr-label">Phone</td>
-                            <td class="kr-value"><span t-field="doc.customer_phone"/></td>
-                            <td class="kr-label">Technician</td>
-                            <td class="kr-value"><span t-field="doc.technician_id"/></td>
-                        </tr>
-                        <tr>
-                            <td class="kr-label">Vehicle</td>
-                            <td class="kr-value"><span t-field="doc.vehicle_id"/></td>
-                            <td class="kr-label">Assistant Technician</td>
-                            <td class="kr-value"><span t-field="doc.assistant_technician_id"/></td>
-                        </tr>
-                        <tr>
-                            <td class="kr-label">Plate Number</td>
-                            <td class="kr-value"><span t-field="doc.plate_no"/></td>
-                            <td class="kr-label">Testing Driver</td>
-                            <td class="kr-value"><span t-field="doc.testing_driver_id"/></td>
-                        </tr>
-                        <tr t-if="doc.vehicle_brand_id or doc.vehicle_model_id or doc.chassis_no or doc.engine_no or doc.color">
-                            <td colspan="4" class="kr-section-title">Vehicle Details</td>
-                        </tr>
-                        <tr t-if="doc.vehicle_brand_id or doc.vehicle_model_id">
-                            <td class="kr-label">Vehicle Brand</td>
-                            <td class="kr-value"><span t-field="doc.vehicle_brand_id"/></td>
-                            <td class="kr-label">Vehicle Model</td>
-                            <td class="kr-value"><span t-field="doc.vehicle_model_id"/></td>
-                        </tr>
-                        <tr t-if="doc.chassis_no or doc.engine_no">
-                            <td class="kr-label">Chassis Number</td>
-                            <td class="kr-value"><span t-field="doc.chassis_no"/></td>
-                            <td class="kr-label">Engine Number</td>
-                            <td class="kr-value"><span t-field="doc.engine_no"/></td>
-                        </tr>
-                        <tr t-if="doc.color">
-                            <td class="kr-label">Color</td>
-                            <td class="kr-value" colspan="3"><span t-field="doc.color"/></td>
-                        </tr>
-                    </table>
+                    <section class="kr-detail-section">
+                        <div class="kr-detail-heading">Job Card Information</div>
+                        <div class="kr-detail-columns">
+                            <div class="kr-detail-column">
+                                <div class="kr-detail-item"><span class="kr-detail-label">Job Card No.</span><span class="kr-detail-value" t-field="doc.name"/></div>
+                                <div class="kr-detail-item"><span class="kr-detail-label">Customer</span><span class="kr-detail-value" t-field="doc.customer_id"/></div>
+                                <div class="kr-detail-item" t-if="doc.customer_phone"><span class="kr-detail-label">Phone</span><span class="kr-detail-value" t-field="doc.customer_phone"/></div>
+                            </div>
+                            <div class="kr-detail-column">
+                                <div class="kr-detail-item"><span class="kr-detail-label">Job Card Date</span><span class="kr-detail-value" t-field="doc.job_card_date"/></div>
+                            </div>
+                        </div>
+                    </section>
 
+                    <t t-set="columns" t-value="matrix['columns']"/>
+                    <t t-set="brand_cell_width" t-value="52.0 / (2 * len(columns))"/>
                     <table class="kr-lines">
                         <thead>
                             <tr>
-                                <th style="width: 5%;">No.</th>
-                                <th style="width: 7%;">Selected</th>
-                                <th style="width: 18%;">Repair Service</th>
-                                <th style="width: 35%;">Part / Description</th>
-                                <th style="width: 7%;">Qty</th>
-                                <th style="width: 12%;">Brand</th>
-                                <th style="width: 10%;">Amount</th>
-                                <th style="width: 10%;">Total</th>
+                                <th class="kr-description">Part / Description</th>
+                                <th class="kr-qty">Qty</th>
+                                <th class="kr-uom">UoM</th>
+                                <th class="kr-made-in">Made In</th>
+                                <th t-foreach="columns" t-as="column" t-att-style="'width: ' + str(round(brand_cell_width, 3)) + '%'">
+                                    <span t-esc="column['name']"/> Price
+                                </th>
+                                <th t-foreach="columns" t-as="column" t-att-style="'width: ' + str(round(brand_cell_width, 3)) + '%'">
+                                    <span t-esc="column['name']"/> Amount
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-set="quote_lines" t-value="doc.line_ids"/>
-                            <tr t-foreach="quote_lines" t-as="line">
-                                <td class="kr-center-cell"><span t-esc="line_index + 1"/></td>
-                                <td class="kr-center-cell"><span t-if="line.selected">Yes</span></td>
-                                <td><span t-field="line.repair_service_id"/></td>
+                            <tr t-foreach="matrix['rows']" t-as="row">
                                 <td>
-                                    <t t-set="tmpl" t-value="line.product_id.product_tmpl_id"/>
-                                    <t t-set="english_name" t-value="tmpl.english_name if 'english_name' in tmpl._fields else False"/>
-                                    <div class="kr-product-main">
-                                        <span t-esc="english_name or line.product_id.display_name"/>
-                                    </div>
-                                    <div class="kr-product-sub" t-if="tmpl.name and tmpl.name != english_name">
-                                        <span t-field="tmpl.name"/>
-                                    </div>
-                                    <div class="kr-product-sub" t-if="line.warranty">
-                                        Warranty: <span t-field="line.warranty"/>
+                                    <div class="kr-product-main"><span t-esc="row['name']"/></div>
+                                    <div class="kr-product-sub" t-if="row['secondary_name']">
+                                        <span t-esc="row['secondary_name']"/>
                                     </div>
                                 </td>
-                                <td class="kr-center-cell">
-                                    <span t-field="line.quantity"/>
+                                <td class="kr-center-cell"><span t-esc="'{:g}'.format(row['quantity'])"/></td>
+                                <td class="kr-center-cell"><span t-esc="row['uom']"/></td>
+                                <td class="kr-center-cell"><span t-esc="', '.join(row['brand_names'])"/></td>
+                                <td t-foreach="columns" t-as="column" class="kr-right">
+                                    <span t-if="column['id'] in row['prices']"
+                                          t-esc="row['prices'][column['id']]"
+                                          t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                                 </td>
-                                <td><span t-field="line.brand_id"/></td>
-                                <td class="kr-right kr-nowrap">
-                                    <span t-field="line.amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                                </td>
-                                <td class="kr-right kr-nowrap">
-                                    <span t-field="line.total_amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                <td t-foreach="columns" t-as="column" class="kr-right">
+                                    <span t-if="column['id'] in row['amounts']"
+                                          t-esc="row['amounts'][column['id']]"
+                                          t-options="{'widget': 'monetary', 'display_currency': currency}"/>
                                 </td>
                             </tr>
-                            <tr t-if="not quote_lines">
-                                <td colspan="8" class="kr-center-cell">No product lines.</td>
+                            <tr t-if="not matrix['rows']">
+                                <td t-att-colspan="4 + 2 * len(columns)" class="kr-center-cell">No product lines.</td>
+                            </tr>
+                            <tr class="kr-grand-total" t-if="matrix['rows']">
+                                <td t-att-colspan="4 + len(columns)" class="kr-right">TOTAL</td>
+                                <td t-foreach="columns" t-as="column" class="kr-right">
+                                    <span t-esc="matrix['totals'][column['id']]"
+                                          t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                </td>
                             </tr>
                         </tbody>
-                    </table>
-
-                    <t t-set="selected_lines" t-value="doc.line_ids.filtered(lambda line: not line.job_card_service_id or line.selected)"/>
-                    <t t-set="parts_total" t-value="sum(selected_lines.mapped('amount'))"/>
-                    <t t-set="labour_total" t-value="doc.labour_cost"/>
-                    <t t-set="service_total" t-value="doc.service_cost"/>
-                    <table class="kr-total-table">
-                        <tr>
-                            <td class="kr-total-label">Parts Total</td>
-                            <td class="kr-right">
-                                <span t-esc="parts_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="kr-total-label">Labour Cost</td>
-                            <td class="kr-right">
-                                <span t-esc="labour_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="kr-total-label">Service Cost</td>
-                            <td class="kr-right">
-                                <span t-esc="service_total" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
-                        <tr class="kr-grand-total">
-                            <td>TOTAL</td>
-                            <td class="kr-right">
-                                <span t-field="doc.total_amount" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
-                            </td>
-                        </tr>
                     </table>
 
                     <div class="kr-text-section" t-if="doc.complaint">

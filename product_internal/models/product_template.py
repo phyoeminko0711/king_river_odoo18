@@ -9,6 +9,11 @@ class ProductTemplate(models.Model):
     car_name = fields.Char(string="Car Name")
     lh_rh = fields.Char(string="LH/RH")
     model_engine = fields.Char(string="Model / Engine")
+    rate_scheme_id = fields.Many2one(
+        "product.rate.scheme",
+        string="Rate Scheme",
+        ondelete="restrict",
+    )
 
     def _get_internal_product_display_name(self):
         self.ensure_one()
