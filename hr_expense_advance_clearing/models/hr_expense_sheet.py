@@ -57,6 +57,29 @@ class HrExpenseSheet(models.Model):
         help="Final regiter payment amount even after advance clearing",
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        sheets = super().create(vals_list)
+        sheets._auto_submit_with_expenses()
+        return sheets
+
+    def write(self, vals):
+        result = super().write(vals)
+        if not {"state", "approval_state", "account_move_ids"}.intersection(vals):
+            self._auto_submit_with_expenses()
+        return result
+
+    def _auto_submit_with_expenses(self):
+        sheets = self.filtered(lambda sheet: sheet.state == "draft" and sheet.expense_line_ids)
+        if sheets:
+            sheets._do_submit()
+
+    def _compute_is_editable(self):
+        super()._compute_is_editable()
+        for sheet in self:
+            if sheet.state == "submit" and sheet.employee_id.user_id == self.env.user:
+                sheet.is_editable = True
+
     @api.onchange('employee_id')
     def set_emp_id_to_expense_line(self):
         for rec in self:
