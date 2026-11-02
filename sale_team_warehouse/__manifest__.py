@@ -14,6 +14,7 @@
         "hr",
     ],
     "data": [
+        "security/sale_pricelist_groups.xml",
         "views/stock_request_views.xml",
         "views/crm_team_views.xml",
         "views/sale_order_views.xml",
