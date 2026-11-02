@@ -1,4 +1,5 @@
 from odoo import Command
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -101,3 +102,72 @@ class TestSaleTeamWarehouse(TransactionCase):
         order.action_confirm()
         self.assertTrue(order.picking_ids)
         self.assertTrue(all(picking.picking_type_id.warehouse_id == self.warehouse_mandalay for picking in order.picking_ids))
+
+    def test_line_pricelist_changes_only_selected_line(self):
+        base_pricelist = self.env["product.pricelist"].create(
+            {"name": "Base Test Prices", "currency_id": self.company.currency_id.id}
+        )
+        alternate_pricelist = self.env["product.pricelist"].create(
+            {
+                "name": "Alternate Test Prices",
+                "currency_id": self.company.currency_id.id,
+                "item_ids": [Command.create({"applied_on": "3_global", "compute_price": "fixed", "fixed_price": 150.0})],
+            }
+        )
+        vals = self._order_vals()
+        vals["pricelist_id"] = base_pricelist.id
+        vals["order_line"].append(
+            Command.create(
+                {"product_id": self.product.id, "product_uom_qty": 1.0, "price_unit": 100.0}
+            )
+        )
+        order = self.env["sale.order"].create(vals)
+        first, second = order.order_line.sorted("id")
+        self.assertEqual(first.pricelist_type_id, base_pricelist)
+        self.assertEqual(second.pricelist_type_id, base_pricelist)
+
+        draft_line = self.env["sale.order.line"].new(
+            {
+                "order_id": order.id,
+                "product_id": self.product.id,
+                "product_uom_qty": 1.0,
+            }
+        )
+        draft_line.pricelist_type_id = alternate_pricelist
+        draft_line._onchange_pricelist_type_id()
+        self.assertEqual(draft_line.price_unit, 150.0)
+
+        first.write({"pricelist_type_id": alternate_pricelist.id})
+        self.assertEqual(first.pricelist_type_id, alternate_pricelist)
+        self.assertEqual(first.price_unit, 150.0)
+        self.assertEqual(second.price_unit, 100.0)
+        self.assertEqual(second.pricelist_type_id, base_pricelist)
+        self.assertEqual(order.pricelist_id, base_pricelist)
+
+        replacement_pricelist = self.env["product.pricelist"].create(
+            {"name": "Replacement Test Prices", "currency_id": self.company.currency_id.id}
+        )
+        order.write({"pricelist_id": replacement_pricelist.id})
+        self.assertEqual(first.pricelist_type_id, alternate_pricelist)
+        self.assertEqual(second.pricelist_type_id, replacement_pricelist)
+
+        salesperson = self.env["res.users"].create(
+            {
+                "name": "Pricelist Test Salesperson",
+                "login": "pricelist_test_salesperson",
+                "groups_id": [Command.set([self.env.ref("base.group_user").id, self.env.ref("sales_team.group_sale_salesman").id])],
+            }
+        )
+        with self.assertRaises(AccessError):
+            first.with_user(salesperson).write({"pricelist_type_id": base_pricelist.id})
+
+        other_currency = self.env["res.currency"].search(
+            [("id", "!=", self.company.currency_id.id)], limit=1
+        )
+        foreign_pricelist = self.env["product.pricelist"].create(
+            {"name": "Foreign Test Prices", "currency_id": other_currency.id}
+        )
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            first.write({"pricelist_type_id": foreign_pricelist.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            order.write({"pricelist_id": foreign_pricelist.id})
