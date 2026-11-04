@@ -15,6 +15,7 @@
                 <field name="car_name" readonly="1" optional="show"/>
                 <field name="lh_rh" readonly="1" optional="show"/>
                 <field name="model_engine" readonly="1" optional="show"/>
+                <field name="product_weight" readonly="1" optional="hide"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='price_unit']" position="before">
                 <field name="company_currency_id" column_invisible="True"/>

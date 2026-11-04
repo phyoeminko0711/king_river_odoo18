@@ -97,6 +97,23 @@ class TestHrExpenseAdvanceClearing(TestExpenseCommon):
         payment_wizard = f.save()
         payment_wizard.action_create_payments()
 
+    def test_reports_submit_automatically_when_expenses_are_saved(self):
+        self.assertEqual(self.advance.state, "submit")
+        self.assertEqual(self.clearing_equal.state, "submit")
+
+        sheet = self.env["hr.expense.sheet"].create(
+            {"name": "Later expense", "employee_id": self.expense_employee.id}
+        )
+        self.assertEqual(sheet.state, "draft")
+        expense = self._create_expense(
+            "Later expense", self.expense_employee, self.product_a, 100.0
+        )
+        sheet.write({"expense_line_ids": [(4, expense.id)]})
+        self.assertEqual(sheet.state, "submit")
+
+        sheet.action_reset_expense_sheets()
+        self.assertEqual(sheet.state, "draft")
+
     def test_0_test_constraints(self):
         """Test some constraints"""
         # Advance Sheet can't be clearing at the same time.

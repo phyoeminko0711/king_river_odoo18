@@ -36,6 +36,11 @@ class PurchaseOrderLine(models.Model):
         store=True,
         readonly=True,
     )
+    product_weight = fields.Float(
+        string="Weight",
+        related="product_id.weight",
+        readonly=True,
+    )
 
     @api.depends("price_unit", "currency_id", "company_id", "date_order")
     def _compute_company_price_unit(self):
