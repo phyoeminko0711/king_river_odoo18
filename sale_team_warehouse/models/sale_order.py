@@ -1,9 +1,19 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
+from odoo.tools import float_compare
 
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
+
+    available_sale_product_ids = fields.Many2many(
+        "product.product",
+        compute="_compute_available_sale_products",
+    )
+    available_sale_template_ids = fields.Many2many(
+        "product.template",
+        compute="_compute_available_sale_products",
+    )
 
     stock_requester_id = fields.Many2one(
         "hr.employee",
@@ -23,6 +33,81 @@ class SaleOrder(models.Model):
         check_company=True,
         tracking=True,
     )
+
+    def _get_available_sale_products(self):
+        self.ensure_one()
+        if not self.warehouse_id:
+            return self.env["product.product"]
+        products = self.env["product.product"].with_company(self.company_id).sudo()
+        quant_domain = products.with_context(
+            warehouse_id=self.warehouse_id.id
+        )._get_domain_locations()[0]
+        quantities = self.env["stock.quant"].sudo()._read_group(
+            quant_domain, ["product_id"], ["available_quantity:sum"]
+        )
+        product_ids = [
+            product.id
+            for product, quantity in quantities
+            if product.is_storable
+            and float_compare(quantity, 0.0, precision_rounding=product.uom_id.rounding) > 0
+        ]
+        return products.browse(product_ids)
+
+    @api.depends("warehouse_id")
+    def _compute_available_sale_products(self):
+        for order in self:
+            products = order._get_available_sale_products()
+            order.available_sale_product_ids = products
+            order.available_sale_template_ids = products.product_tmpl_id
+
+    def _check_warehouse_sale_stock(self):
+        for order in self.filtered(lambda order: order.state in ("draft", "sent")):
+            quantities = {}
+            for line in order.order_line:
+                product = line.product_id
+                if line.display_type or line.is_downpayment or not product.is_storable:
+                    continue
+                quantity = line.product_uom._compute_quantity(
+                    line.product_uom_qty, product.uom_id, round=False
+                )
+                quantities[product] = quantities.get(product, 0.0) + quantity
+            if not quantities:
+                continue
+            if not order.warehouse_id:
+                raise ValidationError(_("Select a warehouse before adding stocked products."))
+            products = self.env["product.product"].sudo().with_company(
+                order.company_id
+            ).with_context(warehouse_id=order.warehouse_id.id)
+            for product, requested in quantities.items():
+                available = products.browse(product.id).free_qty
+                rounding = product.uom_id.rounding
+                if float_compare(available, 0.0, precision_rounding=rounding) <= 0:
+                    raise ValidationError(
+                        _("%(product)s has no available stock in %(warehouse)s.",
+                          product=product.display_name, warehouse=order.warehouse_id.name)
+                    )
+                if float_compare(requested, available, precision_rounding=rounding) > 0:
+                    raise ValidationError(
+                        _("%(product)s: requested %(requested)g exceeds %(available)g available in %(warehouse)s.",
+                          product=product.display_name, requested=requested,
+                          available=available, warehouse=order.warehouse_id.name)
+                    )
+
+    @api.constrains("warehouse_id", "team_id", "order_line")
+    def _check_warehouse_sale_stock_constraint(self):
+        self._check_warehouse_sale_stock()
+
+    def action_confirm(self):
+        self._check_warehouse_sale_stock()
+        return super().action_confirm()
+
+    def _get_product_catalog_domain(self):
+        domain = super()._get_product_catalog_domain()
+        self.ensure_one()
+        return domain + [
+            "|", ("is_storable", "=", False),
+            ("id", "in", self._get_available_sale_products().ids),
+        ]
 
     @api.constrains("pricelist_id")
     def _check_line_pricelist_currencies(self):
@@ -116,6 +201,10 @@ class SaleOrder(models.Model):
 
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
+
+    @api.constrains("product_id", "product_uom_qty", "product_uom", "order_id")
+    def _check_warehouse_sale_stock_constraint(self):
+        self.mapped("order_id")._check_warehouse_sale_stock()
 
     pricelist_override_id = fields.Many2one(
         "product.pricelist",

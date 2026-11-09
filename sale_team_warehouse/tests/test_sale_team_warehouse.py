@@ -103,6 +103,54 @@ class TestSaleTeamWarehouse(TransactionCase):
         self.assertTrue(order.picking_ids)
         self.assertTrue(all(picking.picking_type_id.warehouse_id == self.warehouse_mandalay for picking in order.picking_ids))
 
+    def test_stocked_products_use_only_the_order_warehouse(self):
+        product = self.env["product.product"].create(
+            {"name": "Warehouse Only Product", "type": "consu", "is_storable": True}
+        )
+        self.env["stock.quant"]._update_available_quantity(
+            product, self.warehouse_yangon.lot_stock_id, 5.0
+        )
+        vals = self._order_vals(team=self.team_yangon)
+        vals["order_line"] = [
+            Command.create({"product_id": product.id, "product_uom_qty": 3.0})
+        ]
+        order = self.env["sale.order"].create(vals)
+        self.assertIn(product, order.available_sale_product_ids)
+        self.assertIn(product.product_tmpl_id, order.available_sale_template_ids)
+        other_order = self.env["sale.order"].create(
+            {"partner_id": self.partner.id, "team_id": self.team_mandalay.id}
+        )
+        self.assertNotIn(product, other_order.available_sale_product_ids)
+        self.assertNotIn(product.product_tmpl_id, other_order.available_sale_template_ids)
+        self.assertTrue(
+            any(
+                clause[0:2] == ("id", "in") and product.id in clause[2]
+                for clause in order._get_product_catalog_domain()
+                if isinstance(clause, tuple)
+            )
+        )
+
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            order.order_line.write({"product_uom_qty": 6.0})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            order.write({"team_id": self.team_mandalay.id})
+
+        other_vals = self._order_vals(team=self.team_mandalay)
+        other_vals["order_line"] = [
+            Command.create({"product_id": product.id, "product_uom_qty": 1.0})
+        ]
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["sale.order"].create(other_vals)
+
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            order.write({"order_line": [Command.create({"product_id": product.id, "product_uom_qty": 3.0})]})
+
+        self.env["stock.quant"]._update_available_quantity(
+            product, self.warehouse_yangon.lot_stock_id, -5.0
+        )
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            order.action_confirm()
+
     def test_line_pricelist_changes_only_selected_line(self):
         base_pricelist = self.env["product.pricelist"].create(
             {"name": "Base Test Prices", "currency_id": self.company.currency_id.id}
