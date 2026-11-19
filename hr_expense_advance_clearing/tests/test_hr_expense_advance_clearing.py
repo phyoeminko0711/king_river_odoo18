@@ -97,6 +97,13 @@ class TestHrExpenseAdvanceClearing(TestExpenseCommon):
         payment_wizard = f.save()
         payment_wizard.action_create_payments()
 
+    def test_post_submitted_reports_without_manager_approval(self):
+        for sheet in (self.advance, self.clearing_equal):
+            self.assertEqual(sheet.state, "submit")
+            sheet.action_sheet_move_post()
+            self.assertIn(sheet.state, ("post", "done"))
+            self.assertTrue(sheet.account_move_ids)
+
     def test_reports_submit_automatically_when_expenses_are_saved(self):
         self.assertEqual(self.advance.state, "submit")
         self.assertEqual(self.clearing_equal.state, "submit")
