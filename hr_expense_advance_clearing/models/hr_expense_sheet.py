@@ -4,7 +4,7 @@
 import ast
 
 from odoo import Command, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 
 
@@ -149,6 +149,15 @@ class HrExpenseSheet(models.Model):
 
     def action_sheet_move_post(self):
         """Post journal entries with clearing document"""
+        submitted = self.filtered(lambda sheet: sheet.state == "submit")
+        if submitted:
+            if not self.env.user.has_group("account.group_account_invoice"):
+                raise AccessError(self.env._("Only accounting users can post expense reports."))
+            approval_result = submitted.with_context(
+                skip_expense_manager_approval=True
+            ).action_approve_expense_sheets()
+            if approval_result:
+                return approval_result
         res = super().action_sheet_move_post()
         for sheet in self:
             if not sheet.advance_sheet_id:
@@ -297,6 +306,10 @@ class HrExpenseSheet(models.Model):
                         name=sheet.advance_sheet_id.name,
                     )
                 )
+        if self.env.context.get("skip_expense_manager_approval") and self.env.user.has_group(
+            "account.group_account_invoice"
+        ):
+            return
         return super()._check_can_approve()
 
     def open_clear_advance(self):
