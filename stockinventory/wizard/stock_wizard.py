@@ -1,14 +1,13 @@
 from odoo import models, fields
 import io
-from datetime import timedelta
 import base64
 import xlsxwriter
+from odoo.exceptions import ValidationError
 
 class StockAgeingWizard(models.TransientModel):
     _name = 'stock.wizard'
     _description = 'Stock Ageing Report Wizard'
 
-    period_length = fields.Integer(string="Period Length (Days)", default=30, required=True)
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company, required=True)
     warehouse_ids = fields.Many2many('stock.warehouse', string='Warehouse')
     date = fields.Date(string="Date", default=lambda self: fields.Date.today(), required=True)
@@ -16,6 +15,24 @@ class StockAgeingWizard(models.TransientModel):
     location_ids = fields.Many2many('stock.location', string='Locations')
     product_ids = fields.Many2many('product.product', string='Products')
     category_ids = fields.Many2many('product.category', string='Categories')
+
+    def _get_report_locations(self):
+        self.ensure_one()
+        locations = self.env['stock.location']
+        if self.warehouse_ids:
+            if any(warehouse.company_id != self.company_id for warehouse in self.warehouse_ids):
+                raise ValidationError(self.env._("Selected warehouses must belong to the report company."))
+            locations = locations.search([
+                ('id', 'child_of', self.warehouse_ids.mapped('view_location_id').ids),
+                ('usage', '=', 'internal'),
+            ])
+            if self.location_ids:
+                locations &= self.location_ids
+        else:
+            locations = self.location_ids or locations.search([
+                ('usage', 'in', ['internal', 'transit']),
+            ])
+        return locations
 
 
     def action_print_excel(self):
@@ -33,8 +50,6 @@ class StockAgeingWizard(models.TransientModel):
         worksheet.merge_range('C2:F2', 'Stock Inventory Aging', title_format)
         worksheet.write('B4', 'Date', bold)
         worksheet.write('C4', str(self.date))
-        worksheet.write('E4', 'Period Length', bold)
-        worksheet.write('F4', self.period_length)
         worksheet.write('B5', 'Company', bold)
         worksheet.write('C5', self.company_id.name)
         warehouse_names = ', '.join(self.warehouse_ids.mapped('name'))
@@ -66,7 +81,7 @@ class StockAgeingWizard(models.TransientModel):
         else:
             products = self.env['product.product'].search([('categ_id', 'in', self.category_ids.ids)])
 
-        locations = self.location_ids or self.env['stock.location'].search([('usage', 'in', ['internal', 'transit'])])
+        locations = self._get_report_locations()
 
         stock_quants = self.env['stock.quant'].search([
             ('product_id', 'in', products.ids),
